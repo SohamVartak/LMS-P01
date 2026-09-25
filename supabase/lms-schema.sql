@@ -26,7 +26,7 @@ create table if not exists public.borrow_records (
   book_id uuid not null references public.books(id) on delete restrict,
   student_id uuid not null references auth.users(id) on delete cascade,
   issue_date date not null default current_date,
-  due_date date not null,
+  due_date date,
   return_date date,
   status text not null default 'BORROWED'
     check (status in ('BORROWED','RETURNED','RESERVED','OVERDUE')),
@@ -63,6 +63,21 @@ set search_path = public
 as $$
   select role from public.profiles where id = auth.uid();
 $$;
+
+-- ADMIN PROFILE VISIBILITY
+drop policy if exists "Admins can view all profiles" on public.profiles;
+create policy "Admins can view all profiles"
+on public.profiles for select to authenticated
+using (public.current_app_role() = 'ADMIN');
+
+drop policy if exists "Students can cancel their reservations" on public.borrow_records;
+create policy "Students can cancel their reservations"
+on public.borrow_records for delete to authenticated
+using (
+  student_id = auth.uid()
+  and status = 'RESERVED'
+  and public.current_app_role() = 'STUDENT'
+);
 
 -- BOOKS
 drop policy if exists "Authenticated users can view books" on public.books;
