@@ -48,6 +48,7 @@ export const AdminCirculationPage: React.FC<{ onBack: () => void }> = ({ onBack 
     return activeRecords.filter(r =>
       [r.books?.title, r.books?.author_name, r.profiles?.full_name, r.profiles?.student_id]
         .some(v => (v || '').toLowerCase().includes(q))
+    </div>
     );
   }, [activeRecords, query]);
 
