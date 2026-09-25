@@ -531,7 +531,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const { error } = await supabase.from('borrow_records').insert({
       book_id: bookId,
       student_id: user.id,
-      due_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+      due_date: null,
       status: 'RESERVED'
     });
 
@@ -743,10 +743,16 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
   const markNotificationRead = (notifId: string) => {
     setNotifications(prev => prev.map(n => n.id === notifId ? { ...n, read: true } : n));
+    if (user.id) {
+      void supabase.from('notifications').update({ read: true }).eq('id', notifId).eq('user_id', user.id);
+    }
   };
 
   const markAllNotificationsRead = () => {
     setNotifications(prev => prev.map(n => ({ ...n, read: true })));
+    if (user.id) {
+      void supabase.from('notifications').update({ read: true }).eq('user_id', user.id).eq('read', false);
+    }
     addToast('All Read', 'Marked all notifications as read.', 'info');
   };
 
