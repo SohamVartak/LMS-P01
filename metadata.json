@@ -1,0 +1,6 @@
+{
+  "name": "SIT Central Digital Library",
+  "description": "Central Digital Library Portal for Sarthak's Institute of Technology. Modern academic DBMS library management system featuring catalogue browsing, interactive seat reservation, AI recommendations, book health monitoring, and student companion finder.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,333 @@
+@import "tailwindcss";
+
+:root {
+  /* Default: Cosmic Amethyst & Glowing Sunset Amber - 100% Zero White, Deep & Eye-Catching */
+  --app-canvas: #0E0926;
+  --app-surface: #17103D;
+  --app-surface-elevated: #231A56;
+  --app-surface-subtle: #2F246E;
+  --app-border: #4D3C94;
+  --app-text: #EDE8FD;
+  --app-text-muted: #B4A5E8;
+  --app-primary: #8B5CF6;
+  --app-primary-dark: #6D28D9;
+  --app-accent: #F97316;
+  --app-accent-hover: #FB923C;
+}
+
+[data-theme="amethyst"] {
+  --app-canvas: #0E0926;
+  --app-surface: #17103D;
+  --app-surface-elevated: #231A56;
+  --app-surface-subtle: #2F246E;
+  --app-border: #4D3C94;
+  --app-text: #EDE8FD;
+  --app-text-muted: #B4A5E8;
+  --app-primary: #8B5CF6;
+  --app-primary-dark: #6D28D9;
+  --app-accent: #F97316;
+  --app-accent-hover: #FB923C;
+}
+
+[data-theme="cyberpunk"] {
+  --app-canvas: #13061C;
+  --app-surface: #220B33;
+  --app-surface-elevated: #33124C;
+  --app-surface-subtle: #481A6B;
+  --app-border: #7B28B5;
+  --app-text: #FCE7F3;
+  --app-text-muted: #E879F9;
+  --app-primary: #EC4899;
+  --app-primary-dark: #BE185D;
+  --app-accent: #84CC16;
+  --app-accent-hover: #A3E635;
+}
+
+[data-theme="sunset"] {
+  --app-canvas: #1A0906;
+  --app-surface: #2A100B;
+  --app-surface-elevated: #3E1810;
+  --app-surface-subtle: #562317;
+  --app-border: #8A3723;
+  --app-text: #FFEDD5;
+  --app-text-muted: #FDBA74;
+  --app-primary: #F97316;
+  --app-primary-dark: #C2410C;
+  --app-accent: #FBBF24;
+  --app-accent-hover: #F59E0B;
+}
+
+[data-theme="emerald"] {
+  --app-canvas: #051A14;
+  --app-surface: #0B2B21;
+  --app-surface-elevated: #133D30;
+  --app-surface-subtle: #1C5242;
+  --app-border: #28745E;
+  --app-text: #E1FAF1;
+  --app-text-muted: #82CBB2;
+  --app-primary: #10B981;
+  --app-primary-dark: #059669;
+  --app-accent: #F59E0B;
+  --app-accent-hover: #D97706;
+}
+
+[data-theme="sapphire"] {
+  --app-canvas: #081026;
+  --app-surface: #0E1C44;
+  --app-surface-elevated: #152B66;
+  --app-surface-subtle: #1E3B87;
+  --app-border: #2C53B5;
+  --app-text: #E0ECFD;
+  --app-text-muted: #8EB7EC;
+  --app-primary: #38BDF8;
+  --app-primary-dark: #0284C7;
+  --app-accent: #FB923C;
+  --app-accent-hover: #F97316;
+}
+
+[data-theme="ruby"] {
+  --app-canvas: #1C0916;
+  --app-surface: #2B0F22;
+  --app-surface-elevated: #3E1632;
+  --app-surface-subtle: #531F43;
+  --app-border: #7B2E64;
+  --app-text: #FCEBF3;
+  --app-text-muted: #D18BB1;
+  --app-primary: #F43F5E;
+  --app-primary-dark: #E11D48;
+  --app-accent: #F59E0B;
+  --app-accent-hover: #D97706;
+}
+
+[data-theme="aurora"] {
+  --app-canvas: #041619;
+  --app-surface: #092429;
+  --app-surface-elevated: #10363D;
+  --app-surface-subtle: #174A53;
+  --app-border: #216D7A;
+  --app-text: #E6FFFA;
+  --app-text-muted: #5EEAD4;
+  --app-primary: #14B8A6;
+  --app-primary-dark: #0F766E;
+  --app-accent: #38BDF8;
+  --app-accent-hover: #7DD3FC;
+}
+
+[data-theme="gold"] {
+  --app-canvas: #141006;
+  --app-surface: #211B0C;
+  --app-surface-elevated: #332A15;
+  --app-surface-subtle: #483B1E;
+  --app-border: #755F30;
+  --app-text: #FEF9C3;
+  --app-text-muted: #FDE047;
+  --app-primary: #EAB308;
+  --app-primary-dark: #CA8A04;
+  --app-accent: #FB923C;
+  --app-accent-hover: #F97316;
+}
+
+[data-theme="midnight"] {
+  --app-canvas: #0B0E17;
+  --app-surface: #141B2B;
+  --app-surface-elevated: #1D273D;
+  --app-surface-subtle: #293652;
+  --app-border: #3A4C73;
+  --app-text: #EBF1FD;
+  --app-text-muted: #95A8D1;
+  --app-primary: #818CF8;
+  --app-primary-dark: #6366F1;
+  --app-accent: #F97316;
+  --app-accent-hover: #FB923C;
+}
+
+[data-theme="parchment"] {
+  --app-canvas: #211912;
+  --app-surface: #2E2319;
+  --app-surface-elevated: #3E2F22;
+  --app-surface-subtle: #503D2D;
+  --app-border: #745942;
+  --app-text: #F5EBE1;
+  --app-text-muted: #C9B29B;
+  --app-primary: #D97706;
+  --app-primary-dark: #B45309;
+  --app-accent: #F97316;
+  --app-accent-hover: #EA580C;
+}
+
+[data-theme="slate"] {
+  --app-canvas: #0D131F;
+  --app-surface: #151F33;
+  --app-surface-elevated: #1E2D4A;
+  --app-surface-subtle: #293B60;
+  --app-border: #3B5385;
+  --app-text: #E5EEFB;
+  --app-text-muted: #93ACD6;
+  --app-primary: #60A5FA;
+  --app-primary-dark: #3B82F6;
+  --app-accent: #F97316;
+  --app-accent-hover: #FB923C;
+}
+
+[data-theme="charcoal"] {
+  --app-canvas: #121217;
+  --app-surface: #1C1C24;
+  --app-surface-elevated: #282834;
+  --app-surface-subtle: #363646;
+  --app-border: #4D4D63;
+  --app-text: #EEEEF5;
+  --app-text-muted: #A4A4BE;
+  --app-primary: #A78BFA;
+  --app-primary-dark: #8B5CF6;
+  --app-accent: #F97316;
+  --app-accent-hover: #FB923C;
+}
+
+@theme {
+  --color-primary: var(--app-primary);
+  --color-primary-dark: var(--app-primary-dark);
+  --color-accent: var(--app-accent);
+  --color-accent-hover: var(--app-accent-hover);
+  
+  --color-canvas: var(--app-canvas);
+  --color-surface: var(--app-surface);
+  --color-surface-elevated: var(--app-surface-elevated);
+  --color-surface-subtle: var(--app-surface-subtle);
+  --color-surface-border: var(--app-border);
+}
+
+@layer base {
+  html, body {
+    font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+    color: var(--app-text);
+    background-color: var(--app-canvas) !important;
+    transition: background-color 0.25s ease, color 0.25s ease;
+    min-height: 100vh;
+  }
+
+  /* Universal Zero-White Enforcement: Maps all legacy white styling to rich, eye-catching jewel variables */
+  .bg-white {
+    background-color: var(--app-surface-elevated) !important;
+  }
+  .bg-slate-50,
+  .bg-slate-100 {
+    background-color: var(--app-surface-subtle) !important;
+  }
+  .bg-slate-200 {
+    background-color: var(--app-border) !important;
+  }
+  .bg-slate-900,
+  .bg-slate-950 {
+    background-color: var(--app-canvas) !important;
+  }
+
+  .border-white,
+  .border-slate-100,
+  .border-slate-200,
+  .border-slate-300 {
+    border-color: var(--app-border) !important;
+  }
+
+  .text-slate-900,
+  .text-slate-800,
+  .text-[#1E293B] {
+    color: var(--app-text) !important;
+  }
+
+  .text-slate-700,
+  .text-slate-600,
+  .text-slate-500,
+  .text-slate-400 {
+    color: var(--app-text-muted) !important;
+  }
+
+  input, select, textarea {
+    background-color: var(--app-surface-subtle) !important;
+    color: var(--app-text) !important;
+    border-color: var(--app-border) !important;
+  }
+
+  input::placeholder, textarea::placeholder {
+    color: var(--app-text-muted) !important;
+    opacity: 0.7;
+  }
+}
+
+.font-serif-academic {
+  font-family: 'Source Serif 4', Georgia, serif;
+}
+
+.font-tabular {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum";
+}
+
+/* 3D Flip Card for Surprise Me */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.transform-style-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Custom scrollbars */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--app-canvas);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--app-border);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--app-primary);
+}
+
+/* QR Scanner Laser Animation */
+@keyframes laserSweep {
+  0% {
+    top: 5%;
+    opacity: 0.8;
+  }
+  50% {
+    top: 90%;
+    opacity: 1;
+  }
+  100% {
+    top: 5%;
+    opacity: 0.8;
+  }
+}
+
+.animate-laser {
+  animation: laserSweep 2s ease-in-out infinite;
+}
+
+/* Subtle glowing book spine effect */
+.book-spine-glow {
+  box-shadow: -4px 0 12px -2px rgba(0, 0, 0, 0.5), inset -2px 0 6px rgba(255, 255, 255, 0.1);
+}
+
+/* Neon glow for active items */
+.glow-primary {
+  box-shadow: 0 0 15px -3px var(--app-primary);
+}
+
+.glow-accent {
+  box-shadow: 0 0 15px -3px var(--app-accent);
+}
