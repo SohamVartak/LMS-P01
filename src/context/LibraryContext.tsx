@@ -136,6 +136,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       setUserRole(data.role as 'STUDENT' | 'AUTHOR' | 'ADMIN');
       setIsLoggedIn(true);
       setCurrentPageState('dashboard');
+      if (data.role === 'STUDENT') void loadStudentData(userId);
     };
 
     const init = async () => {
@@ -160,6 +161,97 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       listener.subscription.unsubscribe();
     };
   }, []);
+
+
+  const loadStudentData = async (userId: string) => {
+    if (userRole !== 'STUDENT') return;
+
+    const { data: dbBooks, error: booksError } = await supabase
+      .from('books')
+      .select('*')
+      .order('title', { ascending: true });
+
+    if (!booksError && dbBooks && dbBooks.length > 0) {
+      const mappedBooks: Book[] = dbBooks.map((b: any) => ({
+        id: b.id,
+        isbn: b.isbn || '',
+        title: b.title,
+        author: b.author_name || 'Unknown Author',
+        category: (b.category || 'Computer Science') as Book['category'],
+        description: b.description || '',
+        rating: 0,
+        reviewsCount: 0,
+        pages: 0,
+        readingTimeHours: 0,
+        shelfLocation: b.shelf_location || 'Not assigned',
+        shelfId: b.shelf_id || '',
+        totalCopies: b.total_copies || 0,
+        availableCopies: b.available_copies || 0,
+        condition: (b.condition || 'Good') as BookCondition,
+        conditionNotes: b.condition_notes || '',
+        lastCheckedDate: b.updated_at ? b.updated_at.slice(0, 10) : '',
+        publicationYear: b.publication_year || 0,
+        publisher: b.publisher || '',
+        coverGradient: 'from-slate-800 to-violet-950',
+        coverAccent: '#F97316',
+        popularityScore: 0,
+        aiSummary: {
+          summary: b.description || 'No AI summary available yet.',
+          keyIdeas: [],
+          importantConcepts: [],
+          mainTakeaways: [],
+          whyRead: ''
+        }
+      }));
+      setBooks(mappedBooks);
+    }
+
+    const { data: dbBorrowed, error: borrowError } = await supabase
+      .from('borrow_records')
+      .select('id, book_id, issue_date, due_date, return_date, status, books(title, author_name, category, pages)')
+      .eq('student_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (!borrowError && dbBorrowed) {
+      const mappedBorrowed: BorrowRecord[] = dbBorrowed.map((r: any) => {
+        const book = r.books || {};
+        const dbStatus = String(r.status || 'BORROWED');
+        const status: BorrowRecord['status'] = dbStatus === 'RETURNED' ? 'Completed' : dbStatus === 'RESERVED' ? 'Reserved' : dbStatus === 'OVERDUE' ? 'Overdue' : 'Borrowed';
+        return {
+          id: r.id,
+          bookId: r.book_id,
+          bookTitle: book.title || 'Library Book',
+          author: book.author_name || 'Unknown Author',
+          category: (book.category || 'Computer Science') as Book['category'],
+          coverGradient: 'from-slate-800 to-violet-950',
+          borrowDate: r.issue_date,
+          dueDate: r.due_date,
+          status,
+          progressPercent: status === 'Completed' ? 100 : 0,
+          pagesRead: 0,
+          totalPages: book.pages || 0
+        };
+      });
+      setBorrowedBooks(mappedBorrowed);
+    }
+
+    const { data: dbNotifications, error: notificationsError } = await supabase
+      .from('notifications')
+      .select('id, title, message, type, read, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (!notificationsError && dbNotifications) {
+      setNotifications(dbNotifications.map((n: any) => ({
+        id: n.id,
+        title: n.title,
+        message: n.message,
+        type: (n.type || 'system') as NotificationItem['type'],
+        timestamp: new Date(n.created_at).toLocaleString(),
+        read: n.read
+      })));
+    }
+  };
 
   const setTheme = (newTheme: BackgroundTheme) => {
     setThemeState(newTheme);
@@ -538,6 +630,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     setUserRole(profile.role as 'STUDENT' | 'AUTHOR' | 'ADMIN');
     setIsLoggedIn(true);
     setCurrentPageState('dashboard');
+    if (profile.role === 'STUDENT') void loadStudentData(data.user.id);
     addToast('Welcome Back', `Signed in as ${profile.full_name || email}`, 'success');
     return true;
   };
