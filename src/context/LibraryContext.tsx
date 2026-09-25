@@ -79,6 +79,26 @@ interface LibraryContextType {
   updateUserProfile: (updated: Partial<User>) => void;
   login: (email: string, password: string, expectedRole: 'STUDENT' | 'AUTHOR' | 'ADMIN') => Promise<boolean>;
   logout: () => Promise<void>;
+  refreshBooks: () => Promise<void>;
+  createBook: (book: AdminBookInput) => Promise<boolean>;
+  updateBook: (bookId: string, book: AdminBookInput) => Promise<boolean>;
+  deleteBook: (bookId: string) => Promise<boolean>;
+}
+
+export interface AdminBookInput {
+  isbn: string;
+  title: string;
+  author_name: string;
+  category: string;
+  description: string;
+  publication_year: number | null;
+  publisher: string;
+  total_copies: number;
+  available_copies: number;
+  shelf_location: string;
+  shelf_id: string;
+  condition: BookCondition;
+  condition_notes: string;
 }
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
@@ -164,7 +184,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
 
   const loadStudentData = async (userId: string) => {
-    if (userRole !== 'STUDENT') return;
+    if (!userId) return;
 
     const { data: dbBooks, error: booksError } = await supabase
       .from('books')
@@ -251,6 +271,116 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         read: n.read
       })));
     }
+  };
+
+  const refreshBooks = async () => {
+    const { data, error } = await supabase.from('books').select('*').order('title', { ascending: true });
+    if (error) {
+      addToast('Books Could Not Be Loaded', error.message, 'error');
+      return;
+    }
+    if (data) {
+      setBooks(data.map((b: any) => ({
+        id: b.id,
+        isbn: b.isbn || '',
+        title: b.title,
+        author: b.author_name || 'Unknown Author',
+        category: (b.category || 'Computer Science') as Book['category'],
+        description: b.description || '',
+        rating: 0,
+        reviewsCount: 0,
+        pages: 0,
+        readingTimeHours: 0,
+        shelfLocation: b.shelf_location || 'Not assigned',
+        shelfId: b.shelf_id || '',
+        totalCopies: b.total_copies || 0,
+        availableCopies: b.available_copies || 0,
+        condition: (b.condition || 'Good') as BookCondition,
+        conditionNotes: b.condition_notes || '',
+        lastCheckedDate: b.updated_at ? b.updated_at.slice(0, 10) : '',
+        publicationYear: b.publication_year || 0,
+        publisher: b.publisher || '',
+        coverGradient: 'from-slate-800 to-violet-950',
+        coverAccent: '#F97316',
+        popularityScore: 0,
+        aiSummary: {
+          summary: b.description || 'No AI summary available yet.',
+          keyIdeas: [],
+          importantConcepts: [],
+          mainTakeaways: [],
+          whyRead: ''
+        }
+      })));
+    }
+  };
+
+  const createBook = async (book: AdminBookInput): Promise<boolean> => {
+    if (book.available_copies > book.total_copies) {
+      addToast('Invalid Copy Count', 'Available copies cannot exceed total copies.', 'warning');
+      return false;
+    }
+    const { error } = await supabase.from('books').insert({
+      isbn: book.isbn.trim() || null,
+      title: book.title.trim(),
+      author_name: book.author_name.trim(),
+      category: book.category,
+      description: book.description.trim(),
+      publication_year: book.publication_year || null,
+      publisher: book.publisher.trim(),
+      total_copies: book.total_copies,
+      available_copies: book.available_copies,
+      shelf_location: book.shelf_location.trim(),
+      shelf_id: book.shelf_id.trim(),
+      condition: book.condition,
+      condition_notes: book.condition_notes.trim()
+    });
+    if (error) {
+      addToast('Book Could Not Be Added', error.message, 'error');
+      return false;
+    }
+    await refreshBooks();
+    addToast('Book Added', 'The book was added to the library catalogue.', 'success');
+    return true;
+  };
+
+  const updateBook = async (bookId: string, book: AdminBookInput): Promise<boolean> => {
+    if (book.available_copies > book.total_copies) {
+      addToast('Invalid Copy Count', 'Available copies cannot exceed total copies.', 'warning');
+      return false;
+    }
+    const { error } = await supabase.from('books').update({
+      isbn: book.isbn.trim() || null,
+      title: book.title.trim(),
+      author_name: book.author_name.trim(),
+      category: book.category,
+      description: book.description.trim(),
+      publication_year: book.publication_year || null,
+      publisher: book.publisher.trim(),
+      total_copies: book.total_copies,
+      available_copies: book.available_copies,
+      shelf_location: book.shelf_location.trim(),
+      shelf_id: book.shelf_id.trim(),
+      condition: book.condition,
+      condition_notes: book.condition_notes.trim()
+    }).eq('id', bookId);
+    if (error) {
+      addToast('Book Could Not Be Updated', error.message, 'error');
+      return false;
+    }
+    await refreshBooks();
+    addToast('Book Updated', 'The book was updated successfully.', 'success');
+    return true;
+  };
+
+  const deleteBook = async (bookId: string): Promise<boolean> => {
+    const { error } = await supabase.from('books').delete().eq('id', bookId);
+    if (error) {
+      addToast('Book Could Not Be Deleted', 'The book may have borrowing history. ' + error.message, 'error');
+      return false;
+    }
+    setBooks(prev => prev.filter(book => book.id !== bookId));
+    addToast('Book Deleted', 'The book was removed from the library catalogue.', 'success');
+    return true;
   };
 
   const setTheme = (newTheme: BackgroundTheme) => {
@@ -696,6 +826,10 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         updateUserProfile,
         login,
         logout,
+        refreshBooks,
+        createBook,
+        updateBook,
+        deleteBook,
         theme,
         setTheme
       }}
