@@ -98,7 +98,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   
   const [selectedBookModal, setSelectedBookModal] = useState<Book | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
-  const [currentPage, setCurrentPage] = useState<NavigationPage>('dashboard');
+  const [currentPage, setCurrentPageState] = useState<NavigationPage>('dashboard');
   const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
   const [authLoading, setAuthLoading] = useState<boolean>(true);
   const [userRole, setUserRole] = useState<'STUDENT' | 'AUTHOR' | 'ADMIN' | null>(null);
@@ -114,12 +114,14 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     const loadProfile = async (userId: string) => {
       const { data, error } = await supabase.from('profiles')
         .select('full_name, role, student_id, department, year')
-        .eq('id', userId).single();
+        .eq('id', userId).maybeSingle();
 
       if (!mounted) return;
-      if (error || !data) {
+      if (error || !data || !['STUDENT', 'AUTHOR', 'ADMIN'].includes(data.role)) {
+        await supabase.auth.signOut();
         setIsLoggedIn(false);
         setUserRole(null);
+        setCurrentPageState('dashboard');
         return;
       }
 
@@ -131,9 +133,9 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         department: data.department || prev.department,
         year: data.year || prev.year,
       }));
-      setUserRole(data.role);
+      setUserRole(data.role as 'STUDENT' | 'AUTHOR' | 'ADMIN');
       setIsLoggedIn(true);
-      setCurrentPage('dashboard');
+      setCurrentPageState('dashboard');
     };
 
     const init = async () => {
@@ -517,7 +519,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const { data: profile, error: profileError } = await supabase.from('profiles')
       .select('full_name, role, student_id, department, year')
-      .eq('id', data.user.id).single();
+      .eq('id', data.user.id).maybeSingle();
 
     if (profileError || !profile || profile.role !== expectedRole) {
       await supabase.auth.signOut();
@@ -533,11 +535,21 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
       department: profile.department || prev.department,
       year: profile.year || prev.year,
     }));
-    setUserRole(profile.role);
+    setUserRole(profile.role as 'STUDENT' | 'AUTHOR' | 'ADMIN');
     setIsLoggedIn(true);
-    setCurrentPage('dashboard');
+    setCurrentPageState('dashboard');
     addToast('Welcome Back', `Signed in as ${profile.full_name || email}`, 'success');
     return true;
+  };
+
+  const setCurrentPage = (page: NavigationPage) => {
+    // Only Student accounts can enter the existing student-feature pages.
+    // Author and Administrator portals are isolated from this navigation domain.
+    if (userRole !== 'STUDENT' && page !== 'dashboard') {
+      setCurrentPageState('dashboard');
+      return;
+    }
+    setCurrentPageState(page);
   };
 
   const logout = async () => {
