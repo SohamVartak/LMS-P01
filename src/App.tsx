@@ -32,6 +32,7 @@ import { BookHealthPage } from './pages/BookHealthPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { RoleHomePage } from './pages/RoleHomePage';
+import { AdminBookManagementPage } from './pages/AdminBookManagementPage';
 
 const AppContent: React.FC = () => {
   const { isLoggedIn, authLoading, currentPage, theme, userRole } = useLibrary();
@@ -50,7 +51,11 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (userRole === 'AUTHOR' || userRole === 'ADMIN') {
+  if (userRole === 'ADMIN') {
+    return <AdminBookManagementPage />;
+  }
+
+  if (userRole === 'AUTHOR') {
     return <RoleHomePage />;
   }
 
