@@ -96,6 +96,12 @@ with check (
   and author_id = auth.uid()
 );
 
+-- Admin deletion is separate so catalogue removal is explicitly protected.
+drop policy if exists "Admins can delete books" on public.books;
+create policy "Admins can delete books"
+on public.books for delete to authenticated
+using (public.current_app_role() = 'ADMIN');
+
 -- BORROW RECORDS
 drop policy if exists "Students can view their borrow records" on public.borrow_records;
 create policy "Students can view their borrow records"
