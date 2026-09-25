@@ -8,7 +8,7 @@ type BorrowRow = {
   book_id: string;
   student_id: string;
   issue_date: string;
-  due_date: string;
+  due_date: string | null;
   return_date: string | null;
   status: string;
   books?: { title: string; author_name: string } | null;
@@ -40,7 +40,8 @@ export const AdminCirculationPage: React.FC<{ onBack: () => void }> = ({ onBack 
 
   useEffect(() => { if (userRole === 'ADMIN') { void load(); void refreshBooks(); } }, [userRole]);
 
-  const activeRecords = records.filter(r => r.status !== 'RETURNED');
+  const pendingRecords = records.filter(r => r.status === 'RESERVED');
+  const activeRecords = records.filter(r => r.status === 'BORROWED' || r.status === 'OVERDUE');
   const filtered = useMemo(() => {
     const q = query.toLowerCase().trim();
     if (!q) return activeRecords;
@@ -77,6 +78,36 @@ export const AdminCirculationPage: React.FC<{ onBack: () => void }> = ({ onBack 
     setSaving(false);
   };
 
+  const approveRequest = async (record: BorrowRow) => {
+    const book = books.find(b => b.id === record.book_id);
+    if (!book || book.availableCopies <= 0) { addToast('No Copy Available', 'This book currently has no available copy.', 'warning'); return; }
+    const selectedDue = window.prompt('Enter due date (YYYY-MM-DD):', new Date(Date.now() + 14 * 86400000).toISOString().slice(0,10));
+    if (!selectedDue) return;
+    setSaving(true);
+    const { error } = await supabase.from('borrow_records').update({ status: 'BORROWED', issue_date: new Date().toISOString().slice(0,10), due_date: selectedDue }).eq('id', record.id).eq('status', 'RESERVED');
+    if (!error) {
+      const { error: stockError } = await supabase.from('books').update({ available_copies: book.availableCopies - 1 }).eq('id', book.id).gte('available_copies', 1);
+      if (stockError) { await supabase.from('borrow_records').update({ status: 'RESERVED', due_date: null }).eq('id', record.id); addToast('Approval Failed', stockError.message, 'error'); }
+      else {
+        await supabase.from('notifications').insert({ user_id: record.student_id, title: 'Book Issued', message: 'Your requested book has been issued. Due date: ' + selectedDue + '.', type: 'library' });
+        addToast('Request Approved', 'The book has been issued to the student.', 'success');
+      }
+      await load(); await refreshBooks();
+    } else addToast('Approval Failed', error.message, 'error');
+    setSaving(false);
+  };
+
+  const rejectRequest = async (record: BorrowRow) => {
+    setSaving(true);
+    const { error } = await supabase.from('borrow_records').delete().eq('id', record.id).eq('status', 'RESERVED');
+    if (error) addToast('Rejection Failed', error.message, 'error');
+    else {
+      await supabase.from('notifications').insert({ user_id: record.student_id, title: 'Book Request Declined', message: 'Your book request was declined by the library administrator.', type: 'library' });
+      addToast('Request Declined', 'The reservation request was removed.', 'info');
+      await load();
+    }
+    setSaving(false);
+  };
   const returnBook = async (record: BorrowRow) => {
     const book = books.find(b => b.id === record.book_id);
     if (!book) return;
@@ -124,6 +155,16 @@ export const AdminCirculationPage: React.FC<{ onBack: () => void }> = ({ onBack 
           </label>
           <button disabled={saving} className="w-full py-2.5 rounded-lg bg-violet-700 text-white text-sm font-semibold disabled:opacity-50">{saving ? 'Processing...' : 'Issue Book'}</button>
         </form>
+
+        <div className="space-y-5">
+        <div className="bg-white rounded-xl border border-amber-200 overflow-hidden">
+          <div className="p-4 border-b border-amber-100 bg-amber-50"><div className="flex items-center justify-between"><h2 className="font-bold text-slate-900">Pending Book Requests</h2><span className="text-xs text-amber-700">{pendingRecords.length} pending</span></div></div>
+          {pendingRecords.length === 0 ? <div className="p-6 text-center text-sm text-slate-500">No pending requests.</div> :
+          <div className="divide-y divide-slate-100">{pendingRecords.map(r=><div key={r.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+            <div><div className="font-semibold text-slate-900">{r.books?.title || 'Book'}</div><div className="text-xs text-slate-500">{r.profiles?.full_name || 'Student'}{r.profiles?.student_id ? ' · '+r.profiles.student_id : ''}</div><div className="text-xs text-slate-500 mt-1">Requested {r.issue_date}</div></div>
+            <div className="flex gap-2"><button disabled={saving} onClick={()=>void approveRequest(r)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold">Approve & Issue</button><button disabled={saving} onClick={()=>void rejectRequest(r)} className="px-3 py-2 rounded-lg border border-rose-200 text-rose-700 bg-rose-50 text-xs font-semibold">Decline</button></div>
+          </div>)}</div>}
+        </div>
 
         <div className="bg-white rounded-xl border border-slate-200 overflow-hidden">
           <div className="p-4 border-b border-slate-200">
