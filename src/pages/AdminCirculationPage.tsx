@@ -182,5 +182,6 @@ export const AdminCirculationPage: React.FC<{ onBack: () => void }> = ({ onBack 
       </div>
     </div>
   </div>
+</div>
   );
 };
