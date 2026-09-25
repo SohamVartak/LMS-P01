@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Plus, Pencil, Trash2, Search, X, RefreshCw, ShieldCheck, ClipboardList } from 'lucide-react';
+import { BookOpen, Plus, Pencil, Trash2, Search, X, RefreshCw, ShieldCheck, ClipboardList, Check, XCircle } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { useLibrary } from '../context/LibraryContext';
 import type { AdminBookInput } from '../context/LibraryContext';
 
@@ -12,14 +13,29 @@ const emptyBook: AdminBookInput = {
 const categories = ['Computer Science','Artificial Intelligence','Software Engineering','Mathematics','Self-Improvement','Finance & Business','Classic Literature','Science & Physics'];
 
 export const AdminBookManagementPage: React.FC<{ onOpenCirculation: () => void }> = ({ onOpenCirculation }) => {
-  const { books, userRole, refreshBooks, createBook, updateBook, deleteBook } = useLibrary();
+  const { books, userRole, refreshBooks, createBook, updateBook, deleteBook, addToast } = useLibrary();
   const [query, setQuery] = useState('');
   const [form, setForm] = useState<AdminBookInput>(emptyBook);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [pending, setPending] = useState<any[]>([]);
+  const [reviewing, setReviewing] = useState(false);
 
-  useEffect(() => { if (userRole === 'ADMIN') void refreshBooks(); }, [userRole]);
+  useEffect(() => { if (userRole === 'ADMIN') { void refreshBooks(); void loadPending(); } }, [userRole]);
+
+  const loadPending = async () => {
+    const { data, error } = await supabase.from('books').select('id,title,author_name,category,description,pdf_path,ai_status,submitted_at').eq('approval_status','PENDING').order('submitted_at',{ ascending:false });
+    if (!error) setPending(data || []);
+  };
+
+  const reviewSubmission = async (bookId: string, approved: boolean) => {
+    setReviewing(true);
+    const { error } = await supabase.from('books').update({ approval_status: approved ? 'APPROVED' : 'REJECTED' }).eq('id', bookId).eq('approval_status','PENDING');
+    if (error) addToast('Review Failed', error.message, 'error');
+    else addToast(approved ? 'Book Approved' : 'Book Rejected', approved ? 'The book is now visible in the student catalogue.' : 'The submission was rejected.', approved ? 'success' : 'warning');
+    await loadPending(); await refreshBooks(); setReviewing(false);
+  };
 
   const filtered = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -80,6 +96,11 @@ export const AdminBookManagementPage: React.FC<{ onOpenCirculation: () => void }
           <button onClick={() => void refreshBooks()} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold flex items-center gap-2"><RefreshCw className="w-4 h-4"/> Refresh</button>
           <button onClick={openAdd} className="px-4 py-2 rounded-lg bg-violet-700 text-white text-sm font-semibold flex items-center gap-2"><Plus className="w-4 h-4"/> Add Book</button>
         </div>
+      </div>
+
+      <div className="bg-white rounded-xl border border-amber-200 mb-5 overflow-hidden">
+        <div className="px-5 py-4 border-b bg-amber-50 flex justify-between"><div><span className="font-semibold text-slate-900">Author Submissions</span><p className="text-xs text-slate-500 mt-1">Review books before they enter the student catalogue.</p></div><span className="text-sm font-semibold text-amber-700">{pending.length} pending</span></div>
+        {pending.length > 0 && <div className="divide-y">{pending.map(book => <div key={book.id} className="p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4"><div><p className="font-semibold">{book.title}</p><p className="text-xs text-slate-500">by {book.author_name} · {book.category || 'Uncategorised'}</p><p className="text-xs text-slate-500 mt-1">{book.description || 'No description provided.'}</p><p className="text-[11px] text-amber-700 mt-1">AI summary status: {book.ai_status || 'PENDING'}</p></div><div className="flex gap-2 shrink-0"><button disabled={reviewing} onClick={()=>void reviewSubmission(book.id,false)} className="px-3 py-2 rounded-lg border border-rose-200 text-rose-700 text-xs font-semibold flex gap-1.5"><XCircle className="w-4 h-4"/> Reject</button><button disabled={reviewing} onClick={()=>void reviewSubmission(book.id,true)} className="px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold flex gap-1.5"><Check className="w-4 h-4"/> Approve</button></div></div>)}</div>}
       </div>
 
       <div className="bg-white rounded-xl border border-slate-200 p-4 mb-5">
