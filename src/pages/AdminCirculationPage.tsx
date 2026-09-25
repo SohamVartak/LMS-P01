@@ -1,5 +1,4 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import React, { useEffect, useMemo, useState } from 'react';
 import { ArrowLeft, BookOpen, CalendarDays, CheckCircle2, ClipboardList, Search, UserRound } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useLibrary } from '../context/LibraryContext';
