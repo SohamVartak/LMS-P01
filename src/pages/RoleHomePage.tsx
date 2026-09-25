@@ -57,7 +57,12 @@ export const RoleHomePage: React.FC = () => {
   const publish = async (e: React.FormEvent) => {
     e.preventDefault();
     const total = Math.max(1, Number(form.totalCopies) || 1);
-    if (!pdfFile || pdfFile.type !== 'application/pdf') { addToast('PDF Required', 'Upload the book PDF before submitting.', 'warning'); return; }\n    const filePath = user.id + '/' + crypto.randomUUID() + '.pdf';\n    const { error: uploadError } = await supabase.storage.from('author-book-pdfs').upload(filePath, pdfFile, { contentType: 'application/pdf', upsert: false });\n    if (uploadError) { addToast('PDF Upload Failed', uploadError.message, 'error'); return; }\n    const { error } = await supabase.from('books').insert({\n      title: form.title.trim(), author_name: user.name || 'Author', author_id: user.id,
+    if (!pdfFile || pdfFile.type !== 'application/pdf') { addToast('PDF Required', 'Upload the book PDF before submitting.', 'warning'); return; }
+    const filePath = user.id + '/' + crypto.randomUUID() + '.pdf';
+    const { error: uploadError } = await supabase.storage.from('author-book-pdfs').upload(filePath, pdfFile, { contentType: 'application/pdf', upsert: false });
+    if (uploadError) { addToast('PDF Upload Failed', uploadError.message, 'error'); return; }
+    const { error } = await supabase.from('books').insert({
+      title: form.title.trim(), author_name: user.name || 'Author', author_id: user.id,
       isbn: form.isbn.trim() || null, category: form.category, description: form.description.trim(),
       publication_year: form.publicationYear ? Number(form.publicationYear) : null,
       publisher: form.publisher.trim(), total_copies: total, available_copies: total, condition: 'Good', approval_status: 'PENDING', pdf_path: filePath, ai_status: 'PENDING'
