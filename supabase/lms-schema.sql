@@ -1,0 +1,156 @@
+-- LMS core database schema
+-- Run this once in Supabase SQL Editor after auth-setup.sql.
+
+create table if not exists public.books (
+  id uuid primary key default gen_random_uuid(),
+  isbn text unique,
+  title text not null,
+  author_name text not null,
+  author_id uuid references auth.users(id) on delete set null,
+  category text,
+  description text default '',
+  publication_year integer,
+  publisher text,
+  total_copies integer not null default 1 check (total_copies >= 0),
+  available_copies integer not null default 1 check (available_copies >= 0 and available_copies <= total_copies),
+  shelf_location text,
+  shelf_id text,
+  condition text not null default 'Good',
+  condition_notes text,
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now()
+);
+
+create table if not exists public.borrow_records (
+  id uuid primary key default gen_random_uuid(),
+  book_id uuid not null references public.books(id) on delete restrict,
+  student_id uuid not null references auth.users(id) on delete cascade,
+  issue_date date not null default current_date,
+  due_date date not null,
+  return_date date,
+  status text not null default 'BORROWED'
+    check (status in ('BORROWED','RETURNED','RESERVED','OVERDUE')),
+  created_at timestamptz not null default now()
+);
+
+create table if not exists public.notifications (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  title text not null,
+  message text not null,
+  type text not null default 'system',
+  read boolean not null default false,
+  created_at timestamptz not null default now()
+);
+
+create index if not exists books_title_idx on public.books using gin (to_tsvector('english', title));
+create index if not exists books_author_idx on public.books(author_name);
+create index if not exists borrow_student_idx on public.borrow_records(student_id);
+create index if not exists borrow_book_idx on public.borrow_records(book_id);
+create index if not exists notifications_user_idx on public.notifications(user_id);
+
+alter table public.books enable row level security;
+alter table public.borrow_records enable row level security;
+alter table public.notifications enable row level security;
+
+-- Helper: authenticated user's application role.
+create or replace function public.current_app_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $$
+  select role from public.profiles where id = auth.uid();
+$$;
+
+-- BOOKS
+drop policy if exists "Authenticated users can view books" on public.books;
+create policy "Authenticated users can view books"
+on public.books for select to authenticated
+using (true);
+
+drop policy if exists "Admins can manage books" on public.books;
+create policy "Admins can manage books"
+on public.books for all to authenticated
+using (public.current_app_role() = 'ADMIN')
+with check (public.current_app_role() = 'ADMIN');
+
+drop policy if exists "Authors can create books" on public.books;
+create policy "Authors can create books"
+on public.books for insert to authenticated
+with check (
+  public.current_app_role() = 'AUTHOR'
+  and author_id = auth.uid()
+);
+
+drop policy if exists "Authors can update their books" on public.books;
+create policy "Authors can update their books"
+on public.books for update to authenticated
+using (
+  public.current_app_role() = 'AUTHOR'
+  and author_id = auth.uid()
+)
+with check (
+  public.current_app_role() = 'AUTHOR'
+  and author_id = auth.uid()
+);
+
+-- BORROW RECORDS
+drop policy if exists "Students can view their borrow records" on public.borrow_records;
+create policy "Students can view their borrow records"
+on public.borrow_records for select to authenticated
+using (
+  student_id = auth.uid()
+  and public.current_app_role() = 'STUDENT'
+);
+
+drop policy if exists "Admins can manage borrow records" on public.borrow_records;
+create policy "Admins can manage borrow records"
+on public.borrow_records for all to authenticated
+using (public.current_app_role() = 'ADMIN')
+with check (public.current_app_role() = 'ADMIN');
+
+-- Students can submit a reservation/request. Actual issue/return should be
+-- performed by an administrator through the admin workflow.
+drop policy if exists "Students can create borrow requests" on public.borrow_records;
+create policy "Students can create borrow requests"
+on public.borrow_records for insert to authenticated
+with check (
+  public.current_app_role() = 'STUDENT'
+  and student_id = auth.uid()
+  and status = 'RESERVED'
+);
+
+-- NOTIFICATIONS
+drop policy if exists "Users can view their notifications" on public.notifications;
+create policy "Users can view their notifications"
+on public.notifications for select to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can update their notifications" on public.notifications;
+create policy "Users can update their notifications"
+on public.notifications for update to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+drop policy if exists "Admins can manage notifications" on public.notifications;
+create policy "Admins can manage notifications"
+on public.notifications for all to authenticated
+using (public.current_app_role() = 'ADMIN')
+with check (public.current_app_role() = 'ADMIN');
+
+-- Keep updated_at current when an existing book changes.
+create or replace function public.set_books_updated_at()
+returns trigger language plpgsql
+as $$
+begin
+  new.updated_at = now();
+  return new;
+end;
+$$;
+
+drop trigger if exists books_updated_at on public.books;
+create trigger books_updated_at
+before update on public.books
+for each row execute procedure public.set_books_updated_at();
