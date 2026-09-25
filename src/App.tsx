@@ -33,8 +33,12 @@ import { ProfilePage } from './pages/ProfilePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 
 const AppContent: React.FC = () => {
-  const { isLoggedIn, currentPage, theme } = useLibrary();
+  const { isLoggedIn, authLoading, currentPage, theme } = useLibrary();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+
+  if (authLoading) {
+    return <div data-theme={theme} className="min-h-screen flex items-center justify-center bg-[var(--app-canvas)] text-[var(--app-text)] text-sm">Loading library...</div>;
+  }
 
   if (!isLoggedIn) {
     return (
