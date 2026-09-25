@@ -14,6 +14,7 @@ export const RoleHomePage: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', isbn: '', category: 'Computer Science', description: '', publicationYear: '', publisher: '', totalCopies: '1' });
+  const [pdfFile, setPdfFile] = useState<File | null>(null);
 
   const loadAuthorData = async () => {
     if (userRole !== 'AUTHOR' || !user.id) return;
@@ -56,16 +57,16 @@ export const RoleHomePage: React.FC = () => {
   const publish = async (e: React.FormEvent) => {
     e.preventDefault();
     const total = Math.max(1, Number(form.totalCopies) || 1);
-    const { error } = await supabase.from('books').insert({
-      title: form.title.trim(), author_name: user.name || 'Author', author_id: user.id,
+    if (!pdfFile || pdfFile.type !== 'application/pdf') { addToast('PDF Required', 'Upload the book PDF before submitting.', 'warning'); return; }\n    const filePath = user.id + '/' + crypto.randomUUID() + '.pdf';\n    const { error: uploadError } = await supabase.storage.from('author-book-pdfs').upload(filePath, pdfFile, { contentType: 'application/pdf', upsert: false });\n    if (uploadError) { addToast('PDF Upload Failed', uploadError.message, 'error'); return; }\n    const { error } = await supabase.from('books').insert({\n      title: form.title.trim(), author_name: user.name || 'Author', author_id: user.id,
       isbn: form.isbn.trim() || null, category: form.category, description: form.description.trim(),
       publication_year: form.publicationYear ? Number(form.publicationYear) : null,
-      publisher: form.publisher.trim(), total_copies: total, available_copies: total, condition: 'Good'
+      publisher: form.publisher.trim(), total_copies: total, available_copies: total, condition: 'Good', approval_status: 'PENDING', pdf_path: filePath, ai_status: 'PENDING'
     });
     if (error) { addToast('Book Could Not Be Added', error.message, 'error'); return; }
     addToast('Book Published', 'Your book is now in the library catalogue.', 'success');
     setShowAdd(false);
     setForm({ title:'', isbn:'', category:'Computer Science', description:'', publicationYear:'', publisher:'', totalCopies:'1' });
+    setPdfFile(null);
     await loadAuthorData();
   };
 
@@ -104,8 +105,12 @@ export const RoleHomePage: React.FC = () => {
             <label className="text-xs font-semibold">Publication Year<input type="number" value={form.publicationYear} onChange={e=>setForm({...form,publicationYear:e.target.value})} className="mt-1 w-full border rounded-lg p-2.5 text-sm" /></label>
             <label className="text-xs font-semibold">Total Copies<input type="number" min="1" value={form.totalCopies} onChange={e=>setForm({...form,totalCopies:e.target.value})} className="mt-1 w-full border rounded-lg p-2.5 text-sm" /></label>
           </div>
+          <label className="block text-xs font-semibold mt-4">Book PDF (required)
+            <input required type="file" accept="application/pdf" onChange={e=>setPdfFile(e.target.files?.[0] || null)} className="mt-1 w-full border rounded-lg p-2.5 text-sm" />
+            <span className="block text-[11px] text-slate-500 mt-1">The PDF is private. Students will only see the approved AI-generated summary.</span>
+          </label>
           <label className="block text-xs font-semibold mt-4">Description<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={4} className="mt-1 w-full border rounded-lg p-2.5 text-sm" /></label>
-          <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={()=>setShowAdd(false)} className="px-4 py-2 border rounded-lg text-xs">Cancel</button><button type="submit" className="px-4 py-2 bg-[#4C1D95] text-white rounded-lg text-xs font-semibold">Publish Book</button></div>
+          <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={()=>setShowAdd(false)} className="px-4 py-2 border rounded-lg text-xs">Cancel</button><button type="submit" className="px-4 py-2 bg-[#4C1D95] text-white rounded-lg text-xs font-semibold">Submit for Approval</button></div>
         </form></div>}
       </div>
     </div>
