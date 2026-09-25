@@ -49,9 +49,21 @@ create index if not exists borrow_student_idx on public.borrow_records(student_i
 create index if not exists borrow_book_idx on public.borrow_records(book_id);
 create index if not exists notifications_user_idx on public.notifications(user_id);
 
+create table if not exists public.reading_list (
+  id uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users(id) on delete cascade,
+  book_id uuid not null references public.books(id) on delete cascade,
+  created_at timestamptz not null default now(),
+  unique(user_id, book_id)
+);
+
+create index if not exists reading_list_book_idx on public.reading_list(book_id);
+create index if not exists reading_list_user_idx on public.reading_list(user_id);
+
 alter table public.books enable row level security;
 alter table public.borrow_records enable row level security;
 alter table public.notifications enable row level security;
+alter table public.reading_list enable row level security;
 
 -- Helper: authenticated user's application role.
 create or replace function public.current_app_role()
@@ -141,6 +153,28 @@ with check (
   public.current_app_role() = 'STUDENT'
   and student_id = auth.uid()
   and status = 'RESERVED'
+);
+
+-- READING LIST
+
+drop policy if exists "Users can view their reading list" on public.reading_list;
+create policy "Users can view their reading list"
+on public.reading_list for select to authenticated
+using (user_id = auth.uid());
+
+drop policy if exists "Users can manage their reading list" on public.reading_list;
+create policy "Users can manage their reading list"
+on public.reading_list for all to authenticated
+using (user_id = auth.uid())
+with check (user_id = auth.uid());
+
+-- Authors can see aggregate rows for their own books so their dashboard can show reading-list counts.
+drop policy if exists "Authors can view reading list counts" on public.reading_list;
+create policy "Authors can view reading list counts"
+on public.reading_list for select to authenticated
+using (
+  public.current_app_role() = 'AUTHOR'
+  and exists (select 1 from public.books b where b.id = reading_list.book_id and b.author_id = auth.uid())
 );
 
 -- NOTIFICATIONS
