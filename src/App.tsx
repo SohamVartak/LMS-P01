@@ -31,9 +31,10 @@ import { AIBookSummaryPage } from './pages/AIBookSummaryPage';
 import { BookHealthPage } from './pages/BookHealthPage';
 import { ProfilePage } from './pages/ProfilePage';
 import { NotificationsPage } from './pages/NotificationsPage';
+import { RoleHomePage } from './pages/RoleHomePage';
 
 const AppContent: React.FC = () => {
-  const { isLoggedIn, authLoading, currentPage, theme } = useLibrary();
+  const { isLoggedIn, authLoading, currentPage, theme, userRole } = useLibrary();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (authLoading) {
@@ -47,6 +48,10 @@ const AppContent: React.FC = () => {
         <ToastContainer />
       </div>
     );
+  }
+
+  if (userRole === 'AUTHOR' || userRole === 'ADMIN') {
+    return <RoleHomePage />;
   }
 
   const renderActivePage = () => {
