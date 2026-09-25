@@ -61,7 +61,8 @@ interface LibraryContextType {
   clearSearchHistory: () => void;
   
   borrowBook: (bookId: string) => boolean;
-  reserveBook: (bookId: string) => boolean;
+  reserveBook: (bookId: string) => Promise<boolean>;
+  cancelBookReservation: (borrowRecordId: string) => Promise<boolean>;
   returnBook: (borrowRecordId: string) => void;
   toggleWishlist: (bookId: string) => void;
   updateReadingProgress: (borrowRecordId: string, percent: number) => void;
@@ -228,7 +229,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
 
     const { data: dbBorrowed, error: borrowError } = await supabase
       .from('borrow_records')
-      .select('id, book_id, issue_date, due_date, return_date, status, books(title, author_name, category, pages)')
+      .select('id, book_id, issue_date, due_date, return_date, status, books(title, author_name, category)')
       .eq('student_id', userId)
       .order('created_at', { ascending: false });
 
@@ -249,7 +250,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
           status,
           progressPercent: status === 'Completed' ? 100 : 0,
           pagesRead: 0,
-          totalPages: book.pages || 0
+          totalPages: 0
         };
       });
       setBorrowedBooks(mappedBorrowed);
@@ -514,33 +515,52 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     return true;
   };
 
-  const reserveBook = (bookId: string): boolean => {
+  const reserveBook = async (bookId: string): Promise<boolean> => {
+    if (userRole !== 'STUDENT' || !user.id) return false;
     const targetBook = books.find(b => b.id === bookId);
     if (!targetBook) return false;
 
-    const alreadyReserved = borrowedBooks.some(b => b.bookId === bookId && b.status === 'Reserved');
-    if (alreadyReserved) {
-      addToast('Already Reserved', `You already have an active hold on this title.`, 'info');
+    const alreadyActive = borrowedBooks.some(
+      b => b.bookId === bookId && ['Borrowed', 'Currently Reading', 'Reserved'].includes(b.status)
+    );
+    if (alreadyActive) {
+      addToast('Already Requested', 'You already have an active request or issue for this book.', 'info');
       return false;
     }
 
-    const newRecord: BorrowRecord = {
-      id: 'br-res-' + Date.now(),
-      bookId: targetBook.id,
-      bookTitle: targetBook.title,
-      author: targetBook.author,
-      category: targetBook.category,
-      coverGradient: targetBook.coverGradient,
-      borrowDate: new Date().toISOString().split('T')[0],
-      dueDate: 'Hold pending pickup',
-      status: 'Reserved',
-      progressPercent: 0,
-      pagesRead: 0,
-      totalPages: targetBook.pages
-    };
+    const { error } = await supabase.from('borrow_records').insert({
+      book_id: bookId,
+      student_id: user.id,
+      due_date: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+      status: 'RESERVED'
+    });
 
-    setBorrowedBooks(prev => [newRecord, ...prev]);
-    addToast('Hold Placed Successfully', `Reserved "${targetBook.title}". We will notify you when a copy returns.`, 'success');
+    if (error) {
+      addToast('Reservation Failed', error.message, 'error');
+      return false;
+    }
+
+    await loadStudentData(user.id);
+    addToast('Reservation Submitted', '"'+targetBook.title+'" has been requested. The administrator will issue it to you.', 'success');
+    return true;
+  };
+
+  const cancelBookReservation = async (borrowRecordId: string): Promise<boolean> => {
+    if (userRole !== 'STUDENT' || !user.id) return false;
+    const { error } = await supabase
+      .from('borrow_records')
+      .delete()
+      .eq('id', borrowRecordId)
+      .eq('student_id', user.id)
+      .eq('status', 'RESERVED');
+
+    if (error) {
+      addToast('Cancellation Failed', error.message, 'error');
+      return false;
+    }
+
+    await loadStudentData(user.id);
+    addToast('Reservation Cancelled', 'Your book request was cancelled.', 'info');
     return true;
   };
 
@@ -812,6 +832,7 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         clearSearchHistory,
         borrowBook,
         reserveBook,
+        cancelBookReservation,
         returnBook,
         toggleWishlist,
         updateReadingProgress,
