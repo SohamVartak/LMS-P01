@@ -128,7 +128,8 @@ export const AdminCirculationPage: React.FC<{ onBack: () => void }> = ({ onBack 
 
   if (userRole !== 'ADMIN') return null;
 
-  return <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
+  return (
+    <div className="min-h-screen bg-slate-50 p-4 sm:p-8">
     <div className="max-w-7xl mx-auto">
       <button onClick={onBack} className="mb-5 text-sm font-semibold text-violet-700 flex items-center gap-2"><ArrowLeft className="w-4 h-4"/> Back to Book Management</button>
       <div className="mb-6">
@@ -180,5 +181,6 @@ export const AdminCirculationPage: React.FC<{ onBack: () => void }> = ({ onBack 
         </div>
       </div>
     </div>
-  </div>;
+    </div>
+  );
 };
