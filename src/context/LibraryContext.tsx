@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { supabase } from '../lib/supabase';
 import { 
   Book, 
   User, 
@@ -44,6 +45,8 @@ interface LibraryContextType {
   toasts: ToastMessage[];
   currentPage: NavigationPage;
   isLoggedIn: boolean;
+  authLoading: boolean;
+  userRole: 'STUDENT' | 'AUTHOR' | 'ADMIN' | null;
   theme: BackgroundTheme;
   setTheme: (theme: BackgroundTheme) => void;
   
@@ -74,8 +77,8 @@ interface LibraryContextType {
   markNotificationRead: (notifId: string) => void;
   markAllNotificationsRead: () => void;
   updateUserProfile: (updated: Partial<User>) => void;
-  login: (email: string) => void;
-  logout: () => void;
+  login: (email: string, password: string, expectedRole: 'STUDENT' | 'AUTHOR' | 'ADMIN') => Promise<boolean>;
+  logout: () => Promise<void>;
 }
 
 const LibraryContext = createContext<LibraryContextType | undefined>(undefined);
@@ -96,12 +99,65 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
   const [selectedBookModal, setSelectedBookModal] = useState<Book | null>(null);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
   const [currentPage, setCurrentPage] = useState<NavigationPage>('dashboard');
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(true);
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(false);
+  const [authLoading, setAuthLoading] = useState<boolean>(true);
+  const [userRole, setUserRole] = useState<'STUDENT' | 'AUTHOR' | 'ADMIN' | null>(null);
   const [theme, setThemeState] = useState<BackgroundTheme>('amethyst');
 
   useEffect(() => {
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadProfile = async (userId: string) => {
+      const { data, error } = await supabase.from('profiles')
+        .select('full_name, role, student_id, department, year')
+        .eq('id', userId).single();
+
+      if (!mounted) return;
+      if (error || !data) {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        return;
+      }
+
+      setUser(prev => ({
+        ...prev,
+        id: userId,
+        name: data.full_name || prev.name,
+        studentId: data.student_id || prev.studentId,
+        department: data.department || prev.department,
+        year: data.year || prev.year,
+      }));
+      setUserRole(data.role);
+      setIsLoggedIn(true);
+      setCurrentPage('dashboard');
+    };
+
+    const init = async () => {
+      const { data } = await supabase.auth.getSession();
+      if (data.session) await loadProfile(data.session.user.id);
+      if (mounted) setAuthLoading(false);
+    };
+    void init();
+
+    const { data: listener } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session) {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        setAuthLoading(false);
+      } else {
+        setTimeout(() => { void loadProfile(session.user.id); }, 0);
+      }
+    });
+
+    return () => {
+      mounted = false;
+      listener.subscription.unsubscribe();
+    };
+  }, []);
 
   const setTheme = (newTheme: BackgroundTheme) => {
     setThemeState(newTheme);
@@ -455,15 +511,40 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
     addToast('Profile Updated', 'Your student details and reading preferences have been saved ✓', 'success');
   };
 
-  const login = (email: string) => {
+  const login = async (email: string, password: string, expectedRole: 'STUDENT' | 'AUTHOR' | 'ADMIN'): Promise<boolean> => {
+    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    if (error || !data.user) return false;
+
+    const { data: profile, error: profileError } = await supabase.from('profiles')
+      .select('full_name, role, student_id, department, year')
+      .eq('id', data.user.id).single();
+
+    if (profileError || !profile || profile.role !== expectedRole) {
+      await supabase.auth.signOut();
+      return false;
+    }
+
+    setUser(prev => ({
+      ...prev,
+      id: data.user.id,
+      name: profile.full_name || prev.name,
+      email: data.user.email || email,
+      studentId: profile.student_id || prev.studentId,
+      department: profile.department || prev.department,
+      year: profile.year || prev.year,
+    }));
+    setUserRole(profile.role);
     setIsLoggedIn(true);
-    setUser(prev => ({ ...prev, email: email || prev.email }));
-    addToast('Welcome Back', `Logged in as ${user.name} (${user.studentId})`, 'success');
+    setCurrentPage('dashboard');
+    addToast('Welcome Back', `Signed in as ${profile.full_name || email}`, 'success');
+    return true;
   };
 
-  const logout = () => {
+  const logout = async () => {
+    await supabase.auth.signOut();
     setIsLoggedIn(false);
-    addToast('Logged Out', 'You have been safely signed out of SIT Central Digital Library.', 'info');
+    setUserRole(null);
+    addToast('Logged Out', 'You have been safely signed out of the library.', 'info');
   };
 
   return (
@@ -484,6 +565,8 @@ export const LibraryProvider: React.FC<{ children: React.ReactNode }> = ({ child
         toasts,
         currentPage,
         isLoggedIn,
+        authLoading,
+        userRole,
         setCurrentPage,
         openBookModal,
         closeBookModal,
