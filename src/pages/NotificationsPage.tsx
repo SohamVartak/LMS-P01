@@ -1,4 +1,5 @@
 import React from 'react';
+import { useMemo } from 'react';
 import { useLibrary } from '../context/LibraryContext';
 import { 
   Bell, 
@@ -13,6 +14,7 @@ import {
 
 export const NotificationsPage: React.FC = () => {
   const { notifications, markNotificationRead, markAllNotificationsRead, setCurrentPage } = useLibrary();
+  const unreadCount = useMemo(() => notifications.filter(n => !n.read).length, [notifications]);
 
   const getIcon = (type: string) => {
     switch (type) {
@@ -43,7 +45,7 @@ export const NotificationsPage: React.FC = () => {
             <Bell className="w-6 h-6 text-blue-600" />
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Stay informed about due return reminders, seat reservation passes, and peer exchange proposals.
+            Book requests, approvals, declines, due-date reminders, and other library updates appear here.
           </p>
         </div>
 
@@ -52,7 +54,7 @@ export const NotificationsPage: React.FC = () => {
           className="py-2 px-3.5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold flex items-center gap-1.5 shrink-0 transition-colors"
         >
           <CheckCheck className="w-4 h-4 text-blue-600" />
-          <span>Mark All as Read</span>
+          <span>Mark All as Read {unreadCount > 0 ? `(${unreadCount})` : ''}</span>
         </button>
       </div>
 
