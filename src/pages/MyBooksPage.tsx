@@ -372,21 +372,21 @@ export const MyBooksPage: React.FC = () => {
                   />
                   <div>
                     <span className="text-[11px] font-semibold text-[#F97316] bg-[#FFF7ED] px-2 py-0.5 rounded border border-[#F97316]/30">
-                      Hold Pending Return
+                      Request Pending
                     </span>
                     <h3 className="text-sm font-bold text-[#1E293B] mt-1">{rec.bookTitle}</h3>
                     <p className="text-xs text-slate-500">by {rec.author}</p>
                     <p className="text-[11px] text-slate-500 mt-1">
-                      Priority queue position: #1 · You will receive an SMS/Email notification upon check-in.
+                      Your request is waiting for administrator approval. You will be notified when the book is issued.
                     </p>
                   </div>
                 </div>
 
                 <button
-                  onClick={() => returnBook(rec.id)}
+                  onClick={() => { void cancelBookReservation(rec.id); }}
                   className="py-1.5 px-3 rounded-lg border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-semibold"
                 >
-                  Cancel Hold
+                  Cancel Request
                 </button>
               </div>
             ))
