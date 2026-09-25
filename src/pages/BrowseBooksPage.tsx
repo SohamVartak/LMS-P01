@@ -19,9 +19,7 @@ export const BrowseBooksPage: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('All');
   const [availabilityOnly, setAvailabilityOnly] = useState<boolean>(false);
-  const [minRating, setMinRating] = useState<number>(0);
   const [yearFilter, setYearFilter] = useState<string>('All');
-  const [readingTimeFilter, setReadingTimeFilter] = useState<string>('All');
   const [sortBy, setSortBy] = useState<string>('popular');
   const [showAdvancedFilters, setShowAdvancedFilters] = useState<boolean>(false);
 
@@ -56,32 +54,22 @@ export const BrowseBooksPage: React.FC = () => {
         // Availability filter
         const matchesAvailability = !availabilityOnly || book.availableCopies > 0;
 
-        // Minimum rating
-        const matchesRating = book.rating >= minRating;
-
         // Publication Year
         let matchesYear = true;
         if (yearFilter === '2020+') matchesYear = book.publicationYear >= 2020;
         else if (yearFilter === '2010-2019') matchesYear = book.publicationYear >= 2010 && book.publicationYear <= 2019;
         else if (yearFilter === 'classic') matchesYear = book.publicationYear < 2000;
 
-        // Reading Time Hours
-        let matchesTime = true;
-        if (readingTimeFilter === 'short') matchesTime = book.readingTimeHours <= 8;
-        else if (readingTimeFilter === 'medium') matchesTime = book.readingTimeHours > 8 && book.readingTimeHours <= 16;
-        else if (readingTimeFilter === 'long') matchesTime = book.readingTimeHours > 16;
-
-        return matchesQuery && matchesCategory && matchesAvailability && matchesRating && matchesYear && matchesTime;
+        return matchesQuery && matchesCategory && matchesAvailability && matchesYear;
       })
       .sort((a, b) => {
-        if (sortBy === 'popular') return b.popularityScore - a.popularityScore;
-        if (sortBy === 'rating') return b.rating - a.rating;
         if (sortBy === 'newest') return b.publicationYear - a.publicationYear;
-        if (sortBy === 'readingTime') return a.readingTimeHours - b.readingTimeHours;
+        if (sortBy === 'oldest') return a.publicationYear - b.publicationYear;
         if (sortBy === 'title') return a.title.localeCompare(b.title);
+        if (sortBy === 'author') return a.author.localeCompare(b.author);
         return 0;
       });
-  }, [books, searchQuery, selectedCategory, availabilityOnly, minRating, yearFilter, readingTimeFilter, sortBy]);
+  }, [books, searchQuery, selectedCategory, availabilityOnly, yearFilter, sortBy]);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,9 +86,7 @@ export const BrowseBooksPage: React.FC = () => {
     setSearchQuery('');
     setSelectedCategory('All');
     setAvailabilityOnly(false);
-    setMinRating(0);
     setYearFilter('All');
-    setReadingTimeFilter('All');
     setSortBy('popular');
   };
 
@@ -108,9 +94,7 @@ export const BrowseBooksPage: React.FC = () => {
     searchQuery.trim() !== '' || 
     selectedCategory !== 'All' || 
     availabilityOnly || 
-    minRating > 0 || 
-    yearFilter !== 'All' || 
-    readingTimeFilter !== 'All';
+    yearFilter !== 'All';
 
   return (
     <div className="space-y-6 animate-in fade-in duration-300">
@@ -119,13 +103,13 @@ export const BrowseBooksPage: React.FC = () => {
       <div className="flex flex-col md:flex-row md:items-end justify-between gap-4 pb-4 border-b border-[var(--app-border)]">
         <div>
           <span className="text-xs font-semibold text-[#4C1D95] uppercase tracking-wider">
-            SIT Central Library Catalogue
+            Live Library Catalogue
           </span>
           <h1 className="text-2xl md:text-3xl font-bold font-serif-academic text-[var(--app-text)] tracking-tight mt-0.5">
             Explore Our Library
           </h1>
           <p className="text-xs text-[var(--app-text-muted)] mt-1">
-            Access 30 standard prescribed academic textbooks, classics, and engineering references.
+            Search the live library catalogue by title, author, ISBN, category, shelf, and availability.
           </p>
         </div>
 
@@ -184,7 +168,7 @@ export const BrowseBooksPage: React.FC = () => {
               type="button"
               onClick={() => setShowAdvancedFilters(!showAdvancedFilters)}
               className={`py-2.5 px-3.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                showAdvancedFilters || minRating > 0 || yearFilter !== 'All' || readingTimeFilter !== 'All'
+                showAdvancedFilters || yearFilter !== 'All'
                   ? 'border-[#4C1D95] bg-[#F5F3FF] text-[#4C1D95]'
                   : 'border-[var(--app-border)] bg-[var(--app-surface-elevated)] text-[var(--app-text)] hover:bg-[var(--app-surface-subtle)]'
               }`}
@@ -276,33 +260,19 @@ export const BrowseBooksPage: React.FC = () => {
               </button>
             </div>
 
-            {/* Minimum Rating */}
+            {/* Publication Year */}
             <div>
-              <label className="text-xs font-semibold text-[var(--app-text)] mb-1.5 block">Minimum Rating</label>
-              <select
-                value={minRating}
-                onChange={(e) => setMinRating(Number(e.target.value))}
-                className="w-full py-2 px-3 rounded-lg border border-[var(--app-border)] text-xs bg-[var(--app-surface-elevated)] text-[var(--app-text)] focus:outline-hidden focus:border-[#4C1D95]"
-              >
-                <option value={0}>Any Rating</option>
-                <option value={4.0}>4.0★ & above</option>
-                <option value={4.5}>4.5★ & above</option>
-                <option value={4.8}>4.8★ & above (Masterpieces)</option>
-              </select>
-            </div>
-
-            {/* Publication Era */}
-            <div>
-              <label className="text-xs font-semibold text-[var(--app-text)] mb-1.5 block">Publication Era</label>
+              <label className="text-xs font-semibold text-[var(--app-text)] mb-1.5 block">Publication Year</label>
               <select
                 value={yearFilter}
                 onChange={(e) => setYearFilter(e.target.value)}
                 className="w-full py-2 px-3 rounded-lg border border-[var(--app-border)] text-xs bg-[var(--app-surface-elevated)] text-[var(--app-text)] focus:outline-hidden focus:border-[#4C1D95]"
               >
                 <option value="All">All Publication Years</option>
-                <option value="2020+">Modern & Recent (2020+)</option>
-                <option value="2010-2019">Industry Standard (2010–2019)</option>
-                <option value="classic">Historical & Classics (&lt;2000)</option>
+                <option value="2020+">2020 and newer</option>
+                <option value="2010-2019">2010–2019</option>
+                <option value="2000-2009">2000–2009</option>
+                <option value="classic">Before 2000</option>
               </select>
             </div>
 
@@ -312,13 +282,12 @@ export const BrowseBooksPage: React.FC = () => {
               <select
                 value={sortBy}
                 onChange={(e) => setSortBy(e.target.value)}
-                className="w-full py-2 px-3 rounded-lg border border-[var(--app-border)] text-xs bg-[var(--app-surface-elevated)] text-[var(--app-text)] focus:outline-hidden focus:border-[#4C1D95]"
+                className="w-full py-2 px-3 rounded-lg border border-[var(--app-border)] text-xs bg-[var(--app-surface-elevated)] text-[var(--app-text)] text-xs focus:outline-hidden focus:border-[#4C1D95]"
               >
-                <option value="popular">Most Popular & Borrowed</option>
-                <option value="rating">Highest Student Rating</option>
-                <option value="newest">Recently Published</option>
-                <option value="readingTime">Quickest Reading Time</option>
-                <option value="title">Alphabetical (Title A-Z)</option>
+                <option value="newest">Newest Publication</option>
+                <option value="oldest">Oldest Publication</option>
+                <option value="title">Title A–Z</option>
+                <option value="author">Author A–Z</option>
               </select>
             </div>
 
