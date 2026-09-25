@@ -17,6 +17,14 @@ create table if not exists public.books (
   shelf_id text,
   condition text not null default 'Good',
   condition_notes text,
+  approval_status text not null default 'APPROVED'
+    check (approval_status in ('PENDING','APPROVED','REJECTED')),
+  rejection_reason text,
+  pdf_path text,
+  ai_summary text,
+  ai_status text not null default 'PENDING'
+    check (ai_status in ('PENDING','PROCESSING','COMPLETED','FAILED')),
+  submitted_at timestamptz not null default now(),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -33,6 +41,11 @@ create table if not exists public.borrow_records (
   created_at timestamptz not null default now()
 );
 
+-- Private PDF storage used for author submissions.
+insert into storage.buckets (id, name, public)
+values ('author-book-pdfs', 'author-book-pdfs', false)
+on conflict (id) do update set public = false;
+
 create table if not exists public.notifications (
   id uuid primary key default gen_random_uuid(),
   user_id uuid not null references auth.users(id) on delete cascade,
@@ -45,6 +58,7 @@ create table if not exists public.notifications (
 
 create index if not exists books_title_idx on public.books using gin (to_tsvector('english', title));
 create index if not exists books_author_idx on public.books(author_name);
+create index if not exists books_approval_idx on public.books(approval_status);
 create index if not exists borrow_student_idx on public.borrow_records(student_id);
 create index if not exists borrow_book_idx on public.borrow_records(book_id);
 create index if not exists notifications_user_idx on public.notifications(user_id);
@@ -95,7 +109,11 @@ using (
 drop policy if exists "Authenticated users can view books" on public.books;
 create policy "Authenticated users can view books"
 on public.books for select to authenticated
-using (true);
+using (
+  approval_status = 'APPROVED'
+  or public.current_app_role() = 'ADMIN'
+  or (public.current_app_role() = 'AUTHOR' and author_id = auth.uid())
+);
 
 drop policy if exists "Admins can manage books" on public.books;
 create policy "Admins can manage books"
@@ -109,6 +127,7 @@ on public.books for insert to authenticated
 with check (
   public.current_app_role() = 'AUTHOR'
   and author_id = auth.uid()
+  and approval_status = 'PENDING'
 );
 
 drop policy if exists "Authors can update their books" on public.books;
@@ -122,6 +141,20 @@ with check (
   public.current_app_role() = 'AUTHOR'
   and author_id = auth.uid()
 );
+
+-- Only administrators can approve/reject submissions and change approval metadata.
+drop policy if exists "Admins can review book submissions" on public.books;
+create policy "Admins can review book submissions"
+on public.books for update to authenticated
+using (public.current_app_role() = 'ADMIN')
+with check (public.current_app_role() = 'ADMIN');
+
+-- Authors may update only their own pending submissions.
+drop policy if exists "Authors can update their books" on public.books;
+create policy "Authors can update their books"
+on public.books for update to authenticated
+using (public.current_app_role() = 'AUTHOR' and author_id = auth.uid() and approval_status = 'PENDING')
+with check (public.current_app_role() = 'AUTHOR' and author_id = auth.uid() and approval_status = 'PENDING');
 
 -- Admin deletion is separate so catalogue removal is explicitly protected.
 drop policy if exists "Admins can delete books" on public.books;
@@ -186,6 +219,33 @@ using (
   public.current_app_role() = 'AUTHOR'
   and exists (select 1 from public.books b where b.id = borrow_records.book_id and b.author_id = auth.uid())
 );
+
+-- PRIVATE AUTHOR PDF STORAGE
+drop policy if exists "Authors can upload their PDFs" on storage.objects;
+create policy "Authors can upload their PDFs"
+on storage.objects for insert to authenticated
+with check (
+  bucket_id = 'author-book-pdfs'
+  and public.current_app_role() = 'AUTHOR'
+  and (storage.foldername(name))[1] = auth.uid()::text
+);
+
+drop policy if exists "Authors can view their PDFs" on storage.objects;
+create policy "Authors can view their PDFs"
+on storage.objects for select to authenticated
+using (
+  bucket_id = 'author-book-pdfs'
+  and (
+    public.current_app_role() = 'ADMIN'
+    or ((storage.foldername(name))[1] = auth.uid()::text)
+  )
+);
+
+drop policy if exists "Admins can manage author PDFs" on storage.objects;
+create policy "Admins can manage author PDFs"
+on storage.objects for all to authenticated
+using (bucket_id = 'author-book-pdfs' and public.current_app_role() = 'ADMIN')
+with check (bucket_id = 'author-book-pdfs' and public.current_app_role() = 'ADMIN');
 
 -- NOTIFICATIONS
 drop policy if exists "Users can view their notifications" on public.notifications;
