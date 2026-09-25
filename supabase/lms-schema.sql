@@ -177,6 +177,16 @@ using (
   and exists (select 1 from public.books b where b.id = reading_list.book_id and b.author_id = auth.uid())
 );
 
+-- AUTHORS CAN VIEW CIRCULATION HISTORY FOR THEIR OWN BOOKS
+
+drop policy if exists "Authors can view circulation for their books" on public.borrow_records;
+create policy "Authors can view circulation for their books"
+on public.borrow_records for select to authenticated
+using (
+  public.current_app_role() = 'AUTHOR'
+  and exists (select 1 from public.books b where b.id = borrow_records.book_id and b.author_id = auth.uid())
+);
+
 -- NOTIFICATIONS
 drop policy if exists "Users can view their notifications" on public.notifications;
 create policy "Users can view their notifications"
