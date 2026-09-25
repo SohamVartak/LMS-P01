@@ -10,9 +10,11 @@ interface BookCardProps {
 }
 
 export const BookCard: React.FC<BookCardProps> = ({ book, onOpenDetails }) => {
-  const { openBookModal, wishlist, toggleWishlist, borrowBook } = useLibrary();
+  const { openBookModal, wishlist, toggleWishlist, borrowBook, reserveBook, borrowedBooks } = useLibrary();
   const isWishlisted = wishlist.includes(book.id);
   const isAvailable = book.availableCopies > 0;
+  const isReserved = borrowedBooks.some(b => b.bookId === book.id && b.status === 'Reserved');
+  const isActive = borrowedBooks.some(b => b.bookId === book.id && ['Borrowed', 'Currently Reading'].includes(b.status));
 
   const handleCardClick = () => {
     if (onOpenDetails) {
@@ -110,18 +112,30 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onOpenDetails }) => {
             Details
           </button>
           
-          <button
-            disabled={!isAvailable}
-            onClick={() => borrowBook(book.id)}
-            className={`py-1.5 px-3 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
-              isAvailable
-                ? 'bg-[var(--app-accent)] text-[#0E0926] hover:bg-[var(--app-accent-hover)] shadow-xs active:scale-95'
-                : 'bg-[var(--app-surface-subtle)] text-[var(--app-text-muted)] opacity-50 cursor-not-allowed border border-[var(--app-border)]'
-            }`}
-          >
-            <BookOpen className={`w-3.5 h-3.5 ${isAvailable ? 'text-[#0E0926]' : 'text-[var(--app-text-muted)]'}`} />
-            <span>{isAvailable ? 'Borrow' : 'Held'}</span>
-          </button>
+          {isActive ? (
+            <button disabled className="py-1.5 px-3 text-xs font-bold rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-200">
+              Issued
+            </button>
+          ) : isReserved ? (
+            <button disabled className="py-1.5 px-3 text-xs font-bold rounded-lg bg-amber-50 text-amber-700 border border-amber-200">
+              Requested
+            </button>
+          ) : (
+            <button
+              disabled={!isAvailable}
+              onClick={() => {
+                void reserveBook(book.id);
+              }}
+              className={`py-1.5 px-3 text-xs font-bold rounded-lg transition-colors flex items-center justify-center gap-1.5 ${
+                isAvailable
+                  ? 'bg-[var(--app-accent)] text-[#0E0926] hover:bg-[var(--app-accent-hover)] shadow-xs active:scale-95'
+                  : 'bg-[var(--app-surface-subtle)] text-[var(--app-text-muted)] opacity-50 cursor-not-allowed border border-[var(--app-border)]'
+              }`}
+            >
+              <BookOpen className="w-3.5 h-3.5" />
+              <span>{isAvailable ? 'Request' : 'Unavailable'}</span>
+            </button>
+          )}
         </div>
       </div>
     </div>
