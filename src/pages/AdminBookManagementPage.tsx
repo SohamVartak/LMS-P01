@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { BookOpen, Plus, Pencil, Trash2, Search, X, RefreshCw, ShieldCheck } from 'lucide-react';
-import { useLibrary, AdminBookInput } from '../context/LibraryContext';
+import { BookOpen, Plus, Pencil, Trash2, Search, X, RefreshCw, ShieldCheck, ClipboardList } from 'lucide-react';
+import { useLibrary } from '../context/LibraryContext';
+import type { AdminBookInput } from '../context/LibraryContext';
 
 const emptyBook: AdminBookInput = {
   isbn: '', title: '', author_name: '', category: 'Computer Science', description: '',
@@ -10,7 +11,7 @@ const emptyBook: AdminBookInput = {
 
 const categories = ['Computer Science','Artificial Intelligence','Software Engineering','Mathematics','Self-Improvement','Finance & Business','Classic Literature','Science & Physics'];
 
-export const AdminBookManagementPage: React.FC = () => {
+export const AdminBookManagementPage: React.FC<{ onOpenCirculation: () => void }> = ({ onOpenCirculation }) => {
   const { books, userRole, refreshBooks, createBook, updateBook, deleteBook } = useLibrary();
   const [query, setQuery] = useState('');
   const [form, setForm] = useState<AdminBookInput>(emptyBook);
@@ -75,6 +76,7 @@ export const AdminBookManagementPage: React.FC = () => {
           <p className="text-sm text-slate-500 mt-1">Add, edit, search and remove books from the library catalogue.</p>
         </div>
         <div className="flex gap-2">
+          <button onClick={onOpenCirculation} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold flex items-center gap-2"><ClipboardList className="w-4 h-4"/> Circulation</button>
           <button onClick={() => void refreshBooks()} className="px-3 py-2 rounded-lg border border-slate-200 bg-white text-sm font-semibold flex items-center gap-2"><RefreshCw className="w-4 h-4"/> Refresh</button>
           <button onClick={openAdd} className="px-4 py-2 rounded-lg bg-violet-700 text-white text-sm font-semibold flex items-center gap-2"><Plus className="w-4 h-4"/> Add Book</button>
         </div>
