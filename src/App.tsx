@@ -33,10 +33,12 @@ import { ProfilePage } from './pages/ProfilePage';
 import { NotificationsPage } from './pages/NotificationsPage';
 import { RoleHomePage } from './pages/RoleHomePage';
 import { AdminBookManagementPage } from './pages/AdminBookManagementPage';
+import { AdminCirculationPage } from './pages/AdminCirculationPage';
 
 const AppContent: React.FC = () => {
   const { isLoggedIn, authLoading, currentPage, theme, userRole } = useLibrary();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [adminPage, setAdminPage] = useState<'books' | 'circulation'>('books');
 
   if (authLoading) {
     return <div data-theme={theme} className="min-h-screen flex items-center justify-center bg-[var(--app-canvas)] text-[var(--app-text)] text-sm">Loading library...</div>;
@@ -52,7 +54,9 @@ const AppContent: React.FC = () => {
   }
 
   if (userRole === 'ADMIN') {
-    return <AdminBookManagementPage />;
+    return adminPage === 'books'
+      ? <AdminBookManagementPage onOpenCirculation={() => setAdminPage('circulation')} />
+      : <AdminCirculationPage onBack={() => setAdminPage('books')} />;
   }
 
   if (userRole === 'AUTHOR') {
