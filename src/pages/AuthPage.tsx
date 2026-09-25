@@ -1,346 +1,125 @@
 import React, { useState } from 'react';
+import { ArrowLeft, ArrowRight, BookOpen, GraduationCap, PenLine, ShieldCheck } from 'lucide-react';
+import { supabase } from '../lib/supabase';
 import { useLibrary } from '../context/LibraryContext';
-import { BookOpen, Shield, GraduationCap, CheckCircle2, ArrowRight } from 'lucide-react';
+
+type Role = 'STUDENT' | 'AUTHOR' | 'ADMIN';
+
+const roles: Record<Role, { title: string; description: string; icon: React.ReactNode }> = {
+  STUDENT: { title: 'Student / User', description: 'Browse, borrow books, reserve seats and manage your reading.', icon: <GraduationCap className="w-7 h-7" /> },
+  AUTHOR: { title: 'Author', description: 'Access the library author portal.', icon: <PenLine className="w-7 h-7" /> },
+  ADMIN: { title: 'Administrator', description: 'Secure administrative library access.', icon: <ShieldCheck className="w-7 h-7" /> },
+};
 
 export const AuthPage: React.FC = () => {
   const { login, addToast } = useLibrary();
-  const [isRegister, setIsRegister] = useState(false);
+  const [role, setRole] = useState<Role | null>(null);
+  const [register, setRegister] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [name, setName] = useState('');
+  const [studentId, setStudentId] = useState('');
+  const [department, setDepartment] = useState('Computer Science & Engineering');
+  const [year, setYear] = useState('3rd Year (Semester VI)');
+  const [confirm, setConfirm] = useState('');
 
-  // Login form state
-  const [loginEmail, setLoginEmail] = useState('sarthakgujar63@gmail.com');
-  const [loginPassword, setLoginPassword] = useState('••••••••');
-  const [rememberMe, setRememberMe] = useState(true);
+  const choose = (r: Role) => { setRole(r); setRegister(false); setError(''); };
+  const back = () => { setRole(null); setRegister(false); setError(''); };
 
-  // Register form state
-  const [regName, setRegName] = useState('');
-  const [regStudentId, setRegStudentId] = useState('');
-  const [regEmail, setRegEmail] = useState('');
-  const [regDept, setRegDept] = useState('Computer Science & Engineering');
-  const [regYear, setRegYear] = useState('3rd Year (Semester VI)');
-  const [regPassword, setRegPassword] = useState('');
-  const [regConfirmPassword, setRegConfirmPassword] = useState('');
-
-  const [errorMsg, setErrorMsg] = useState('');
-
-  const handleLoginSubmit = (e: React.FormEvent) => {
+  const signIn = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!loginEmail.trim()) {
-      setErrorMsg('Please enter your college email address.');
-      return;
-    }
-    setErrorMsg('');
-    login(loginEmail);
+    if (!role) return;
+    setError('');
+    setLoading(true);
+    const ok = await login(email.trim(), password, role);
+    setLoading(false);
+    if (!ok) setError('Invalid credentials, or this account belongs to a different portal.');
   };
 
-  const handleRegisterSubmit = (e: React.FormEvent) => {
+  const signUp = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!regName.trim() || !regStudentId.trim() || !regEmail.trim()) {
-      setErrorMsg('All academic credentials and identification fields are required.');
-      return;
-    }
-    if (regPassword !== regConfirmPassword) {
-      setErrorMsg('Passwords do not match. Please verify your entries.');
-      return;
-    }
-    if (regPassword.length < 6) {
-      setErrorMsg('Password should be at least 6 characters.');
-      return;
-    }
+    if (!role || role === 'ADMIN') return;
+    if (!name.trim() || !email.trim()) return setError('Name and email are required.');
+    if (role === 'STUDENT' && !studentId.trim()) return setError('Student ID is required.');
+    if (password.length < 6) return setError('Password must be at least 6 characters.');
+    if (password !== confirm) return setError('Passwords do not match.');
 
-    setErrorMsg('');
-    addToast('Account Registered', `Welcome to SIT Central Library, ${regName}!`, 'success');
-    login(regEmail);
+    setError('');
+    setLoading(true);
+    const { data, error: authError } = await supabase.auth.signUp({
+      email: email.trim(),
+      password,
+      options: { data: { full_name: name.trim(), role, student_id: studentId.trim(), department, year } },
+    });
+    setLoading(false);
+
+    if (authError) return setError(authError.message);
+    if (!data.session) {
+      setRegister(false);
+      addToast('Account Created', 'Check your email to confirm your account, then sign in.', 'success');
+    } else {
+      addToast('Account Created', 'Your account is ready.', 'success');
+    }
   };
+
+  const resetPassword = async () => {
+    if (!email.trim()) return setError('Enter your email address first.');
+    setLoading(true);
+    const { error: e } = await supabase.auth.resetPasswordForEmail(email.trim());
+    setLoading(false);
+    if (e) return setError(e.message);
+    addToast('Reset Link Sent', 'Password reset instructions were sent to your email.', 'info');
+  };
+
+  if (!role) return (
+    <div className="min-h-screen bg-[var(--app-canvas)] flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden">
+        <div className="bg-gradient-to-br from-[#4C1D95] to-[#1E293B] p-8 sm:p-10 text-white">
+          <div className="flex items-center gap-3"><div className="w-11 h-11 rounded-xl bg-[#F97316] flex items-center justify-center"><BookOpen /></div><div><h1 className="text-xl font-bold">SIT Central Library</h1><p className="text-xs text-purple-200">Library Management System</p></div></div>
+          <h2 className="mt-10 text-3xl font-bold">Choose your portal</h2>
+          <p className="mt-2 text-sm text-purple-100">Select your account type to continue.</p>
+        </div>
+        <div className="p-6 sm:p-8 grid gap-4 md:grid-cols-3">
+          {(Object.keys(roles) as Role[]).map(r => <button key={r} onClick={() => choose(r)} className="text-left p-5 rounded-xl border border-slate-200 hover:border-[#4C1D95] hover:shadow-md transition-colors">
+            <div className="w-12 h-12 rounded-xl bg-purple-50 text-[#4C1D95] flex items-center justify-center mb-4">{roles[r].icon}</div>
+            <h3 className="font-bold text-slate-900">{roles[r].title}</h3><p className="text-xs text-slate-500 mt-2">{roles[r].description}</p>
+            <div className="mt-5 text-xs font-semibold text-[#4C1D95] flex items-center gap-1">Continue <ArrowRight className="w-3.5 h-3.5" /></div>
+          </button>)}
+        </div>
+      </div>
+    </div>
+  );
 
   return (
-    <div className="min-h-screen bg-[var(--app-canvas)] flex items-center justify-center p-4 sm:p-6 lg:p-8 transition-colors duration-200">
-      <div className="max-w-4xl w-full bg-[var(--app-surface-elevated)] rounded-2xl shadow-2xl overflow-hidden flex flex-col md:flex-row border border-[var(--app-border)]">
-        
-        {/* Left Side: Academic College Illustration & Philosophy in Royal Violet (#4C1D95) */}
-        <div className="md:w-5/12 bg-gradient-to-br from-[#4C1D95] via-[#3B0764] to-[#1E293B] p-8 text-white flex flex-col justify-between relative overflow-hidden">
-          {/* Subtle geometric pattern */}
-          <div className="absolute inset-0 opacity-10 pointer-events-none"
-               style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, white 1px, transparent 0)', backgroundSize: '24px 24px' }} />
-
-          {/* Top College Crest & Title */}
-          <div className="relative z-10">
-            <div className="flex items-center gap-2.5 mb-3">
-              <div className="w-10 h-10 rounded-xl bg-[#F97316] text-white flex items-center justify-center font-extrabold text-base shadow-lg shadow-orange-500/20">
-                SIT
-              </div>
-              <div>
-                <h3 className="font-bold text-base tracking-tight leading-none text-white font-serif-academic">
-                  SIT Central Library
-                </h3>
-                <span className="text-[11px] text-purple-200">Sarthak&apos;s Institute of Technology</span>
-              </div>
-            </div>
-
-            <div className="mt-8 space-y-2">
-              <h2 className="text-2xl font-serif-academic font-bold text-white leading-tight">
-                Your Digital Library, Anywhere.
-              </h2>
-              <p className="text-xs text-purple-100/85 leading-relaxed">
-                Seamless access to academic textbooks, research papers, study seat carrels, and AI-powered reading recommendations.
-              </p>
-            </div>
-          </div>
-
-          {/* Center Graphic representation */}
-          <div className="my-8 py-4 px-5 rounded-xl bg-white/10 border border-white/15 backdrop-blur-xs space-y-3 relative z-10">
-            <div className="flex items-center gap-3 text-xs text-purple-100">
-              <CheckCircle2 className="w-4 h-4 text-[#F97316] shrink-0" />
-              <span>30+ Curated Core Textbooks</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-purple-100">
-              <CheckCircle2 className="w-4 h-4 text-[#F97316] shrink-0" />
-              <span>Interactive Real-time Seat Booking</span>
-            </div>
-            <div className="flex items-center gap-3 text-xs text-purple-100">
-              <CheckCircle2 className="w-4 h-4 text-[#F97316] shrink-0" />
-              <span>QR Smart Stacks & Search History</span>
-            </div>
-          </div>
-
-          {/* Bottom Security Note */}
-          <div className="relative z-10 pt-4 border-t border-white/15 text-[11px] text-purple-200 flex items-center gap-2">
-            <Shield className="w-3.5 h-3.5 text-[#F97316]" />
-            <span>Authenticated Student Portal · SIT Campus</span>
-          </div>
+    <div className="min-h-screen bg-[var(--app-canvas)] flex items-center justify-center p-4">
+      <div className="w-full max-w-4xl bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden md:flex">
+        <div className="md:w-5/12 bg-gradient-to-br from-[#4C1D95] via-[#3B0764] to-[#1E293B] p-8 text-white">
+          <button onClick={back} className="flex items-center gap-1 text-xs text-purple-200 hover:text-white"><ArrowLeft className="w-3.5 h-3.5" /> Change portal</button>
+          <div className="mt-10 w-12 h-12 rounded-xl bg-[#F97316] flex items-center justify-center">{roles[role].icon}</div>
+          <h2 className="mt-5 text-2xl font-bold">{roles[role].title}</h2><p className="text-sm text-purple-100 mt-2">{roles[role].description}</p>
         </div>
+        <div className="md:w-7/12 p-7 sm:p-10">
+          <h2 className="text-xl font-bold text-slate-900">{register ? 'Create Account' : roles[role].title + ' Sign In'}</h2>
+          <p className="text-xs text-slate-500 mt-1">{register ? 'Create your library account.' : 'Enter your email and password.'}</p>
+          {error && <div className="my-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">{error}</div>}
 
-        {/* Right Side: Login / Register Form */}
-        <div className="md:w-7/12 p-8 sm:p-10 flex flex-col justify-center bg-white">
-          <div className="mb-6">
-            <h3 className="text-xl font-bold text-[#1E293B] tracking-tight">
-              {isRegister ? 'Student Registration' : 'Student Portal Sign In'}
-            </h3>
-            <p className="text-xs text-slate-500 mt-1">
-              {isRegister 
-                ? 'Create your SIT Central Digital Library student account' 
-                : 'Enter your institutional email credentials to proceed'}
-            </p>
-          </div>
-
-          {errorMsg && (
-            <div className="mb-4 p-3 rounded-lg bg-rose-50 border border-rose-200 text-xs text-rose-700">
-              {errorMsg}
-            </div>
-          )}
-
-          {!isRegister ? (
-            /* Login Form */
-            <form onSubmit={handleLoginSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-[#1E293B] mb-1">
-                  College Email Address
-                </label>
-                <input
-                  type="email"
-                  value={loginEmail}
-                  onChange={(e) => setLoginEmail(e.target.value)}
-                  placeholder="student.name@sit.ac.in"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-[#1E293B] focus:outline-hidden focus:border-[#4C1D95] focus:ring-1 focus:ring-[#4C1D95] transition-colors"
-                  required
-                />
-              </div>
-
-              <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="text-xs font-semibold text-[#1E293B]">
-                    Password
-                  </label>
-                  <button 
-                    type="button" 
-                    onClick={() => addToast('Reset Link Sent', 'Password reset instructions dispatched to your college email.', 'info')}
-                    className="text-[11px] text-[#4C1D95] hover:underline font-semibold"
-                  >
-                    Forgot Password?
-                  </button>
-                </div>
-                <input
-                  type="password"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                  placeholder="••••••••"
-                  className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-xs text-[#1E293B] focus:outline-hidden focus:border-[#4C1D95] focus:ring-1 focus:ring-[#4C1D95] transition-colors"
-                  required
-                />
-              </div>
-
-              <div className="flex items-center justify-between text-xs text-slate-600">
-                <label className="flex items-center gap-2 cursor-pointer select-none">
-                  <input
-                    type="checkbox"
-                    checked={rememberMe}
-                    onChange={(e) => setRememberMe(e.target.checked)}
-                    className="rounded border-slate-300 text-[#4C1D95] focus:ring-[#4C1D95]"
-                  />
-                  <span>Remember my session</span>
-                </label>
-                <span className="text-[11px] text-slate-400">Demo PIN: Any password</span>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-2.5 px-4 rounded-xl bg-[#4C1D95] hover:bg-[#3B0764] text-white font-semibold text-xs shadow-md transition-colors flex items-center justify-center gap-2 mt-2"
-              >
-                <span>Access Digital Library</span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#F97316]" />
-              </button>
-
-              <div className="pt-4 text-center border-t border-slate-100">
-                <p className="text-xs text-slate-600">
-                  Don&apos;t have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsRegister(true);
-                      setErrorMsg('');
-                    }}
-                    className="text-[#4C1D95] font-semibold hover:underline"
-                  >
-                    Create Account
-                  </button>
-                </p>
-              </div>
-            </form>
-          ) : (
-            /* Registration Form */
-            <form onSubmit={handleRegisterSubmit} className="space-y-3">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#1E293B] mb-0.5">
-                    Full Name
-                  </label>
-                  <input
-                    type="text"
-                    value={regName}
-                    onChange={(e) => setRegName(e.target.value)}
-                    placeholder="Sarthak Gujar"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-[#4C1D95]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#1E293B] mb-0.5">
-                    Student ID
-                  </label>
-                  <input
-                    type="text"
-                    value={regStudentId}
-                    onChange={(e) => setRegStudentId(e.target.value)}
-                    placeholder="SIT-2024-CS-089"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-[#4C1D95]"
-                    required
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-[11px] font-semibold text-[#1E293B] mb-0.5">
-                  Institutional Email
-                </label>
-                <input
-                  type="email"
-                  value={regEmail}
-                  onChange={(e) => setRegEmail(e.target.value)}
-                  placeholder="sarthak.gujar@sit.ac.in"
-                  className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-[#4C1D95]"
-                  required
-                />
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#1E293B] mb-0.5">
-                    Academic Department
-                  </label>
-                  <select
-                    value={regDept}
-                    onChange={(e) => setRegDept(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white text-[#1E293B] focus:ring-1 focus:ring-[#4C1D95]"
-                  >
-                    <option>Computer Science & Engineering</option>
-                    <option>Artificial Intelligence & Data Science</option>
-                    <option>Information Technology</option>
-                    <option>Electronics & Telecommunications</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#1E293B] mb-0.5">
-                    Academic Year
-                  </label>
-                  <select
-                    value={regYear}
-                    onChange={(e) => setRegYear(e.target.value)}
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs bg-white text-[#1E293B] focus:ring-1 focus:ring-[#4C1D95]"
-                  >
-                    <option>1st Year (Semester I & II)</option>
-                    <option>2nd Year (Semester III & IV)</option>
-                    <option>3rd Year (Semester V & VI)</option>
-                    <option>4th Year (Semester VII & VIII)</option>
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#1E293B] mb-0.5">
-                    Password
-                  </label>
-                  <input
-                    type="password"
-                    value={regPassword}
-                    onChange={(e) => setRegPassword(e.target.value)}
-                    placeholder="Min. 6 chars"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-[#4C1D95]"
-                    required
-                  />
-                </div>
-                <div>
-                  <label className="block text-[11px] font-semibold text-[#1E293B] mb-0.5">
-                    Confirm Password
-                  </label>
-                  <input
-                    type="password"
-                    value={regConfirmPassword}
-                    onChange={(e) => setRegConfirmPassword(e.target.value)}
-                    placeholder="Repeat password"
-                    className="w-full px-3 py-2 rounded-lg border border-slate-300 text-xs focus:ring-1 focus:ring-[#4C1D95]"
-                    required
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                className="w-full py-2.5 px-4 rounded-xl bg-[#4C1D95] hover:bg-[#3B0764] text-white font-semibold text-xs shadow-md transition-colors flex items-center justify-center gap-2 mt-4"
-              >
-                <span>Create Student Account</span>
-                <ArrowRight className="w-3.5 h-3.5 text-[#F97316]" />
-              </button>
-
-              <div className="pt-3 text-center border-t border-slate-100">
-                <p className="text-xs text-slate-600">
-                  Already have an account?{' '}
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setIsRegister(false);
-                      setErrorMsg('');
-                    }}
-                    className="text-[#4C1D95] font-semibold hover:underline"
-                  >
-                    Sign In
-                  </button>
-                </p>
-              </div>
-            </form>
-          )}
-
+          {!register ? <form onSubmit={signIn} className="space-y-4 mt-6">
+            <div><label className="block text-xs font-semibold text-slate-700 mb-1">Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm" required /></div>
+            <div><div className="flex justify-between mb-1"><label className="text-xs font-semibold text-slate-700">Password</label><button type="button" onClick={resetPassword} className="text-[11px] text-[#4C1D95] font-semibold">Forgot Password?</button></div><input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3.5 py-2.5 rounded-xl border border-slate-300 text-sm" required /></div>
+            <button disabled={loading} className="w-full py-2.5 rounded-xl bg-[#4C1D95] disabled:opacity-60 text-white font-semibold text-sm">{loading ? 'Signing in...' : 'Sign In'}</button>
+            {role !== 'ADMIN' ? <p className="pt-4 border-t text-center text-xs text-slate-600">Don't have an account? <button type="button" onClick={() => setRegister(true)} className="text-[#4C1D95] font-semibold">Create Account</button></p> : <p className="pt-4 border-t text-center text-[11px] text-slate-400">Administrator accounts are created by the library administrator.</p>}
+          </form> : <form onSubmit={signUp} className="space-y-3 mt-6">
+            <div><label className="block text-xs font-semibold text-slate-700 mb-1">Full Name</label><input value={name} onChange={e => setName(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" required /></div>
+            {role === 'STUDENT' && <div className="grid sm:grid-cols-2 gap-3"><div><label className="block text-xs font-semibold text-slate-700 mb-1">Student ID</label><input value={studentId} onChange={e => setStudentId(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" required /></div><div><label className="block text-xs font-semibold text-slate-700 mb-1">Department</label><select value={department} onChange={e => setDepartment(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm"><option>Computer Science & Engineering</option><option>Artificial Intelligence & Data Science</option><option>Information Technology</option><option>Electronics & Telecommunications</option></select></div></div>}
+            <div><label className="block text-xs font-semibold text-slate-700 mb-1">Email</label><input type="email" value={email} onChange={e => setEmail(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" required /></div>
+            {role === 'STUDENT' && <div><label className="block text-xs font-semibold text-slate-700 mb-1">Academic Year</label><select value={year} onChange={e => setYear(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm"><option>1st Year (Semester I & II)</option><option>2nd Year (Semester III & IV)</option><option>3rd Year (Semester V & VI)</option><option>4th Year (Semester VII & VIII)</option></select></div>}
+            <div className="grid sm:grid-cols-2 gap-3"><div><label className="block text-xs font-semibold text-slate-700 mb-1">Password</label><input type="password" value={password} onChange={e => setPassword(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" required /></div><div><label className="block text-xs font-semibold text-slate-700 mb-1">Confirm Password</label><input type="password" value={confirm} onChange={e => setConfirm(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" required /></div></div>
+            <button disabled={loading} className="w-full py-2.5 rounded-xl bg-[#4C1D95] disabled:opacity-60 text-white font-semibold text-sm">{loading ? 'Creating...' : 'Create Account'}</button>
+            <p className="pt-3 border-t text-center text-xs text-slate-600">Already have an account? <button type="button" onClick={() => setRegister(false)} className="text-[#4C1D95] font-semibold">Sign In</button></p>
+          </form>}
         </div>
-
       </div>
     </div>
   );
