@@ -29,41 +29,40 @@ export const DashboardPage: React.FC = () => {
     updateReadingProgress 
   } = useLibrary();
 
-  // Animated counter states
-  const [animatedStats, setAnimatedStats] = useState({
-    borrowed: 0,
-    completed: 0,
-    streak: 0,
-    pending: 0
-  });
+  // Live circulation statistics from Supabase-backed records
+  const activeIssues = borrowedBooks.filter(b => b.status === 'Borrowed' || b.status === 'Currently Reading' || b.status === 'Overdue');
+  const completedCount = borrowedBooks.filter(b => b.status === 'Completed').length;
+  const pendingRequests = borrowedBooks.filter(b => b.status === 'Reserved').length;
+  const dueSoonCount = activeIssues.filter(b => {
+    if (!b.dueDate) return false;
+    const due = new Date(b.dueDate + 'T23:59:59');
+    const days = (due.getTime() - Date.now()) / 86400000;
+    return days >= 0 && days <= 7;
+  }).length;
+
+  const [animatedStats, setAnimatedStats] = useState({ borrowed: 0, completed: 0, pending: 0 });
 
   const [activeProgressModal, setActiveProgressModal] = useState<string | null>(null);
   const [tempProgress, setTempProgress] = useState<number>(0);
 
-  // Animate statistics numbers on mount
   useEffect(() => {
-    const duration = 1000;
-    const steps = 25;
+    const duration = 500;
+    const steps = 10;
     const intervalTime = duration / steps;
     let step = 0;
-
     const timer = setInterval(() => {
       step++;
       const factor = step / steps;
       setAnimatedStats({
-        borrowed: Math.round(user.booksBorrowed * factor),
-        completed: Math.round(user.booksCompleted * factor),
-        streak: Math.round(user.readingStreak * factor),
-        pending: Math.round(user.pendingReturns * factor)
+        borrowed: Math.round(activeIssues.length * factor),
+        completed: Math.round(completedCount * factor),
+        pending: Math.round(pendingRequests * factor)
       });
-
-      if (step >= steps) {
-        clearInterval(timer);
-      }
+      if (step >= steps) clearInterval(timer);
     }, intervalTime);
-
     return () => clearInterval(timer);
-  }, [user]);
+  }, [activeIssues.length, completedCount, pendingRequests]);
+
 
   // Currently Reading books from borrowed records
   const currentlyReadingRecords = borrowedBooks.filter(
@@ -135,16 +134,16 @@ export const DashboardPage: React.FC = () => {
         
         <div className="relative z-10 max-w-2xl">
           <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-[var(--app-surface)]/80 border border-[var(--app-border)] text-[var(--app-accent)] text-xs font-semibold mb-3 shadow-xs">
-            <span>Semester VI</span>
+            <span>Year {user.year || '—'}</span>
             <span>·</span>
             <span>{user.department}</span>
           </div>
 
           <h1 className="text-2xl sm:text-3xl font-bold font-serif-academic text-[var(--app-text)] tracking-tight">
-            Good Morning, Sarthak 👋
+            Good Morning, {user.name || 'Student'} 👋
           </h1>
           <p className="text-[var(--app-text-muted)] text-xs sm:text-sm mt-1 leading-relaxed">
-            Continue your reading journey. You have <strong className="text-[var(--app-accent)] font-semibold">{user.pendingReturns} books due</strong> this week and an active <strong className="text-[var(--app-text)] font-semibold">{user.readingStreak}-day study streak</strong>.
+            Continue your reading journey. You have <strong className="text-[var(--app-accent)] font-semibold">{dueSoonCount} books due soon</strong> and <strong className="text-[var(--app-text)] font-semibold">{pendingRequests} pending requests</strong>.
           </p>
 
           <div className="mt-5 flex flex-wrap items-center gap-3">
@@ -182,7 +181,7 @@ export const DashboardPage: React.FC = () => {
             </span>
             <span className="text-[11px] text-[var(--app-text-muted)]">active issues</span>
           </div>
-          <p className="text-[11px] text-[var(--app-text-muted)] mt-1 font-tabular">Quota: 4 of 6 books</p>
+          <p className="text-[11px] text-[var(--app-text-muted)] mt-1 font-tabular">Quota: {activeIssues.length} of 6 books</p>
         </div>
 
         {/* Card 2: Books Completed */}
@@ -197,9 +196,9 @@ export const DashboardPage: React.FC = () => {
             <span className="text-3xl font-bold font-tabular text-[var(--app-text)] transition-all duration-700">
               {animatedStats.completed}
             </span>
-            <span className="text-[11px] text-[var(--app-text-muted)]">read this year</span>
+            <span className="text-[11px] text-[var(--app-text-muted)]">completed</span>
           </div>
-          <p className="text-[11px] text-emerald-400 mt-1">+2 completed this month</p>
+          <p className="text-[11px] text-emerald-400 mt-1">+{completedCount} total completed</p>
         </div>
 
         {/* Card 3: Reading Streak */}
@@ -214,9 +213,9 @@ export const DashboardPage: React.FC = () => {
             <span className="text-3xl font-bold font-tabular text-[var(--app-text)] transition-all duration-700">
               {animatedStats.streak}
             </span>
-            <span className="text-[11px] text-amber-400 font-bold">Days 🔥</span>
+            <span className="text-[11px] text-amber-400 font-bold">active days</span>
           </div>
-          <p className="text-[11px] text-[var(--app-text-muted)] mt-1">Personal Best: 18 days</p>
+          <p className="text-[11px] text-[var(--app-text-muted)] mt-1">Live from your library activity</p>
         </div>
 
         {/* Card 4: Pending Returns */}
@@ -233,7 +232,7 @@ export const DashboardPage: React.FC = () => {
             </span>
             <span className="text-[11px] text-orange-400 font-semibold">due soon</span>
           </div>
-          <p className="text-[11px] text-orange-400/90 mt-1 font-medium">Next due in 24 hours</p>
+          <p className="text-[11px] text-orange-400/90 mt-1 font-medium">{dueSoonCount > 0 ? 'Check My Books for due dates' : 'No books due in the next 7 days'}</p>
         </div>
       </div>
 
@@ -438,7 +437,7 @@ export const DashboardPage: React.FC = () => {
             onClick={() => setCurrentPage('browse-books')}
             className="text-xs font-semibold text-[var(--app-accent)] hover:text-[var(--app-accent-hover)] flex items-center gap-1"
           >
-            <span>Explore All 30 Titles</span>
+            <span>Explore All Books</span>
             <ArrowRight className="w-3.5 h-3.5 text-[var(--app-accent)]" />
           </button>
         </div>
