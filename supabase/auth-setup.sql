@@ -12,10 +12,21 @@ create table if not exists public.profiles (
 );
 
 alter table public.profiles enable row level security;
+create or replace function public.current_app_role()
+returns text
+language sql
+stable
+security definer
+set search_path = public
+as $
+  select role from public.profiles where id = auth.uid();
+$;
+
+
 alter table public.profiles add column if not exists email text not null default '';
 alter table public.profiles add column if not exists approval_status text not null default 'APPROVED';
 alter table public.profiles add column if not exists approval_note text;
-update public.profiles set email = coalesce(email, '') where email is null;
+update public.profiles p set email = coalesce(u.email, '') from auth.users u where u.id = p.id and (p.email is null or p.email = '');
 update public.profiles set approval_status = 'APPROVED' where approval_status is null;
 
 drop policy if exists "Users can view their own profile" on public.profiles;
