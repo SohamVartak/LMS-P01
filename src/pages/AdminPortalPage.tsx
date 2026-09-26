@@ -22,18 +22,62 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
 
   const load = async () => {
     setLoading(true);
+
+    // Keep auth-user references separate from profile display data. The
+    // database stores student_id/user_id as auth.users UUIDs, while the
+    // readable name, email and student ID live in public.profiles.
     const [studentRes, authorRes, bookRes, presenceRes, borrowRes] = await Promise.all([
-      supabase.from('profiles').select('id,full_name,email,student_id,department,year,role,approval_status,approval_note,created_at').eq('role','STUDENT').order('created_at',{ascending:false}),
-      supabase.from('profiles').select('id,full_name,email,department,year,role,created_at').eq('role','AUTHOR').order('created_at',{ascending:false}),
-      supabase.from('books').select('id,title,author_name,author_id,approval_status,ai_status,pdf_path,submitted_at,category,total_copies,available_copies').order('created_at',{ascending:false}),
-      supabase.from('library_presence').select('user_id,table_number,activity,status,updated_at,profiles(full_name,email,student_id,department,year)').eq('status','IN_LIBRARY').order('updated_at',{ascending:false}),
-      supabase.from('borrow_records').select('id,student_id,book_id,issue_date,due_date,status,books(title,author_name)').order('created_at',{ascending:false})
+      supabase
+        .from('profiles')
+        .select('id,full_name,email,student_id,department,year,role,approval_status,approval_note,created_at')
+        .eq('role','STUDENT')
+        .order('created_at',{ascending:false}),
+      supabase
+        .from('profiles')
+        .select('id,full_name,email,department,year,role,created_at')
+        .eq('role','AUTHOR')
+        .order('created_at',{ascending:false}),
+      supabase
+        .from('books')
+        .select('id,title,author_name,author_id,approval_status,ai_status,pdf_path,submitted_at,category,total_copies,available_copies')
+        .order('created_at',{ascending:false}),
+      supabase
+        .from('library_presence')
+        .select('user_id,table_number,activity,status,updated_at')
+        .eq('status','IN_LIBRARY')
+        .order('updated_at',{ascending:false}),
+      supabase
+        .from('borrow_records')
+        .select('id,student_id,book_id,issue_date,due_date,status,books(title,author_name)')
+        .order('created_at',{ascending:false})
     ]);
+
     if (!studentRes.error) setStudents(studentRes.data || []);
     if (!authorRes.error) setAuthors(authorRes.data || []);
-    if (!bookRes.error) { setAuthorBooks(bookRes.data || []); setPendingBooks((bookRes.data || []).filter((b:any) => b.approval_status === 'PENDING')); }
-    if (!presenceRes.error) setPresence(presenceRes.data || []);
-    if (!borrowRes.error) setBorrowed(borrowRes.data || []);
+    if (!bookRes.error) {
+      setAuthorBooks(bookRes.data || []);
+      setPendingBooks((bookRes.data || []).filter((b:any) => b.approval_status === 'PENDING'));
+    }
+
+    const profileMap = new Map(
+      (studentRes.data || [])
+        .concat(authorRes.data || [])
+        .map((profile: any) => [profile.id, profile])
+    );
+
+    if (!presenceRes.error) {
+      setPresence(
+        (presenceRes.data || []).map((row: any) => ({
+          ...row,
+          profiles: profileMap.get(row.user_id) || null
+        }))
+      );
+    }
+
+    if (!borrowRes.error) {
+      setBorrowed(borrowRes.data || []);
+    }
+
     setLoading(false);
   };
 
@@ -57,7 +101,6 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
     await load();
   };
 
-  const studentsById = useMemo(() => new Map(students.map(s => [s.id, s])), [students]);
   const activeCount = presence.length;
   const readingCount = presence.filter(p => String(p.activity).toLowerCase().includes('read')).length;
   const workCount = activeCount - readingCount;
