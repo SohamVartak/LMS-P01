@@ -446,142 +446,126 @@ export const LibraryProvider: React.FC<{
   useEffect(() => {
     let mounted = true;
 
-    const loadProfile = async (
-      userId: string
-    ) => {
-      const {
-        data,
-        error
-      } = await supabase
+    const loadProfile = async (userId: string) => {
+      const { data, error } = await supabase
         .from('profiles')
-        .select(
-          'full_name, role, student_id, department, year, email, approval_status'
-        )
+        .select('full_name, role, student_id, department, year, email, approval_status')
         .eq('id', userId)
         .maybeSingle();
 
       if (!mounted) return;
 
-      /*
-       * INVALID / MISSING PROFILE
-       */
       if (
         error ||
         !data ||
-        ![
-          'STUDENT',
-          'AUTHOR',
-          'ADMIN'
-        ].includes(data.role)
+        !['STUDENT', 'AUTHOR', 'ADMIN'].includes(data.role)
       ) {
-        console.error(
-          'PROFILE LOAD ERROR:',
-          error
-        );
-
+        console.error('PROFILE LOAD ERROR:', error);
         await supabase.auth.signOut();
-
+        if (!mounted) return;
         setIsLoggedIn(false);
         setUserRole(null);
         setActivePortal(null);
         setCurrentPageState('dashboard');
-
+        setAuthLoading(false);
         return;
       }
 
-      if (data.role === 'STUDENT' && requestedPortalRef.current === 'STUDENT' && data.approval_status !== 'APPROVED') {
-        setAuthError(data.approval_status === 'REJECTED' ? 'Your student registration was rejected by the administrator.' : 'Your student registration is waiting for administrator approval.');
+      if (
+        data.role === 'STUDENT' &&
+        requestedPortalRef.current === 'STUDENT' &&
+        data.approval_status !== 'APPROVED'
+      ) {
+        const message =
+          data.approval_status === 'REJECTED'
+            ? 'Your student registration was rejected by the administrator.'
+            : 'Your student registration is waiting for administrator approval.';
+
         await supabase.auth.signOut();
+        if (!mounted) return;
+        setAuthError(message);
         setIsLoggedIn(false);
         setUserRole(null);
         setActivePortal(null);
+        setAuthLoading(false);
         return;
       }
 
-      /*
-       * UPDATE USER
-       */
       setUser(prev => ({
         ...prev,
-
         id: userId,
-
-        name:
-          data.full_name ||
-          prev.name,
-
-        studentId:
-          data.student_id ||
-          prev.studentId,
-
-        department:
-          data.department ||
-          prev.department,
-
-        year:
-          data.year ||
-          prev.year
+        name: data.full_name || prev.name,
+        email: data.email || prev.email,
+        studentId: data.student_id || prev.studentId,
+        department: data.department || prev.department,
+        year: data.year || prev.year
       }));
 
       setUserRole(data.role as 'STUDENT' | 'AUTHOR' | 'ADMIN');
-      setActivePortal(requestedPortalRef.current || (data.role as 'STUDENT' | 'AUTHOR' | 'ADMIN'));
-
-      setIsLoggedIn(true);
-
-      setCurrentPageState(
-        'dashboard'
+      setActivePortal(
+        requestedPortalRef.current ||
+          (data.role as 'STUDENT' | 'AUTHOR' | 'ADMIN')
       );
+      setIsLoggedIn(true);
+      setAuthLoading(false);
+      setCurrentPageState('dashboard');
 
-      if (data.role === 'STUDENT' || requestedPortalRef.current === 'STUDENT') {
+      if (
+        data.role === 'STUDENT' ||
+        requestedPortalRef.current === 'STUDENT'
+      ) {
         void loadStudentData(userId);
       }
     };
 
-    const {
-      data: listener
-    } =
-      supabase.auth.onAuthStateChange(
-        (event, session) => {
-          if (event === 'INITIAL_SESSION') return;
+    // IMPORTANT: clear any persisted Supabase session BEFORE registering
+    // the auth listener. This prevents the startup SIGNED_OUT event from
+    // arriving after a fresh login and throwing the user back to portal
+    // selection.
+    const initializeAuth = async () => {
+      await supabase.auth.signOut();
 
-          if (!session) {
+      if (!mounted) return;
+
+      setIsLoggedIn(false);
+      setUserRole(null);
+      setActivePortal(null);
+      requestedPortalRef.current = null;
+      setCurrentPageState('dashboard');
+      setAuthLoading(false);
+
+      const { data: listener } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+          if (!mounted) return;
+
+          if (event === 'SIGNED_OUT') {
             setIsLoggedIn(false);
             setUserRole(null);
             setActivePortal(null);
-            setAuthLoading(false);
+            requestedPortalRef.current = null;
             setCurrentPageState('dashboard');
-          } else if (event === 'SIGNED_IN') {
-            setTimeout(() => {
-              void loadProfile(session.user.id);
-            }, 0);
+            setAuthLoading(false);
+            return;
+          }
+
+          if (event === 'SIGNED_IN' && session?.user) {
+            void loadProfile(session.user.id);
           }
         }
       );
 
-    const init = async () => {
-      // Clear a persisted session before showing the login screen.
-      // authLoading stays true while this finishes, so a new login cannot
-      // race with the startup sign-out.
-      await supabase.auth.signOut();
-
-      if (mounted) {
-        setIsLoggedIn(false);
-        setUserRole(null);
-        setActivePortal(null);
-        requestedPortalRef.current = null;
-        setCurrentPageState('dashboard');
-        setAuthLoading(false);
-      }
+      // Store the subscription for cleanup.
+      cleanupSubscription = () => listener.subscription.unsubscribe();
     };
 
-    void init();
+    let cleanupSubscription: (() => void) | null = null;
+    void initializeAuth();
 
     return () => {
       mounted = false;
-      listener.subscription.unsubscribe();
+      cleanupSubscription?.();
     };
   }, []);
-
   /*
    * SET CURRENT PAGE
    *
