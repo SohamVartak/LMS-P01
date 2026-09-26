@@ -51,8 +51,8 @@ export const BookHealthPage: React.FC = () => {
     const matchesQuery = 
       !searchQuery ||
       book.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.author.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      book.shelfLocation.toLowerCase().includes(searchQuery.toLowerCase());
+      (book.author_name || '').toLowerCase().includes(searchQuery.toLowerCase()) ||
+      book.shelf_location.toLowerCase().includes(searchQuery.toLowerCase());
 
     const matchesCond = selectedConditionFilter === 'All' || book.condition === selectedConditionFilter;
 
@@ -223,11 +223,10 @@ export const BookHealthPage: React.FC = () => {
                   <tr key={book.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3.5 px-4 font-medium text-slate-900">
                       <div 
-                        onClick={() => openBookModal(book)}
-                        className="cursor-pointer hover:text-blue-700"
+                        className="font-semibold"
                       >
                         <span className="font-semibold block truncate max-w-xs">{book.title}</span>
-                        <span className="text-[11px] text-slate-400 font-normal">by {book.author}</span>
+                        <span className="text-[11px] text-slate-400 font-normal">by {book.author_name}</span>
                       </div>
                     </td>
 
@@ -253,7 +252,7 @@ export const BookHealthPage: React.FC = () => {
                     <td className="py-3.5 px-4 text-right">
                       {userRole === 'ADMIN' && (
                         <button
-                          onClick={() => handleOpenEdit(book.id, book.condition, book.conditionNotes)}
+                          onClick={() => handleOpenEdit(book.id, book.condition, book.condition_notes)}
                           className="py-1 px-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[11px] font-semibold transition-colors"
                         >
                           Update
