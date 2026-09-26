@@ -26,10 +26,7 @@ export const BookHealthPage: React.FC = () => {
   const updateBookCondition = async (bookId: string, condition: BookCondition, notes?: string) => {
     if (userRole !== 'ADMIN') return;
     const { error } = await supabase.rpc('set_book_condition', { p_book_id: bookId, p_condition: condition, p_notes: notes || null });
-    if (error) {
-      const fallback = await supabase.from('books').update({ condition, condition_notes: notes || null, condition_set_at: new Date().toISOString() }).eq('id', bookId);
-      if (fallback.error) return;
-    }
+    if (error) return;
     const { data } = await supabase.from('books').select('id,title,author_name,category,shelf_location,condition,condition_notes,condition_set_at,author_id').eq('approval_status','APPROVED').order('title');
     setBooks(data || []);
   };
