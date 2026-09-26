@@ -7,9 +7,10 @@ type Section = 'overview' | 'students' | 'authors' | 'books' | 'library';
 interface Props {
   onOpenBooks: () => void;
   onOpenCirculation: () => void;
+  onOpenHealth: () => void;
 }
 
-export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculation }) => {
+export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculation, onOpenHealth }) => {
   const [section, setSection] = useState<Section>('overview');
   const [students, setStudents] = useState<any[]>([]);
   const [authors, setAuthors] = useState<any[]>([]);
@@ -149,6 +150,7 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
           ))}
           <button onClick={onOpenBooks} className="px-4 py-2 rounded-xl text-sm font-semibold bg-white border text-slate-600">Full Book Catalogue</button>
           <button onClick={onOpenCirculation} className="px-4 py-2 rounded-xl text-sm font-semibold bg-white border text-slate-600">Circulation</button>
+          <button onClick={onOpenHealth} className="px-4 py-2 rounded-xl text-sm font-semibold bg-white border text-slate-600">Book Health</button>
         </div>
 
         {section === 'overview' && (
