@@ -182,8 +182,8 @@ export const ProfilePage: React.FC = () => {
             {/* Bottom Barcode simulation & Status */}
             <div className="relative z-10 pt-3 border-t border-[var(--app-border)] flex items-end justify-between text-xs">
               <div>
-                <span className="text-[9px] uppercase tracking-wider text-[var(--app-text-muted)] block">Barcode / RFID Tag</span>
-                <span className="font-mono text-[11px] text-[var(--app-text)] tracking-wider">|| | | |||| | ||| |||</span>
+                <span className="text-[9px] uppercase tracking-wider text-[var(--app-text-muted)] block">Library account</span>
+                <span className="font-mono text-[11px] text-[var(--app-text)] tracking-wider">Student ID: {user.studentId || 'Not recorded'}</span>
               </div>
               <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-500/40">
                 ACTIVE &bull; CLEAR
@@ -198,12 +198,12 @@ export const ProfilePage: React.FC = () => {
             </h4>
             <div className="space-y-2 text-xs">
               <div className="flex justify-between py-1 border-b border-[var(--app-border)]">
-                <span className="text-[var(--app-text-muted)]">Max Active Loan Quota</span>
-                <span className="font-bold text-[var(--app-text)] font-tabular">{activeLoans} active</span>
+                <span className="text-[var(--app-text-muted)]">Current Active Loans</span>
+                <span className="font-bold text-[var(--app-text)] font-tabular">{activeLoans}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--app-border)]">
-                <span className="text-[var(--app-text-muted)]">Current Active Loans</span>
-                <span className="font-bold text-[var(--app-accent)] font-tabular">{activeLoans} Books</span>
+                <span className="text-[var(--app-text-muted)]">Active Loan Records</span>
+                <span className="font-bold text-[var(--app-accent)] font-tabular">{activeLoans}</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--app-border)]">
                 <span className="text-[var(--app-text-muted)]">Overdue records</span>
