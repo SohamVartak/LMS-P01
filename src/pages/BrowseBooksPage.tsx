@@ -28,11 +28,13 @@ export const BrowseBooksPage: React.FC = () => {
     'Computer Science',
     'Artificial Intelligence',
     'Software Engineering',
-    'Mathematics',
-    'Finance & Business',
-    'Self-Improvement',
-    'Science & Physics',
-    'Classic Literature'
+    'Computer Engineering',
+    'Artificial Intelligence',
+    'Electrical Engineering',
+    'Electronics & Communication',
+    'Mechanical Engineering',
+    'Civil Engineering',
+    'Engineering Mathematics'
   ];
 
   // Filtering & Sorting pipeline
