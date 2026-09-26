@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useState, useEffect } from 'react';
+import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
 import { supabase } from '../lib/supabase';
 import {
   Book,
@@ -47,6 +47,7 @@ interface LibraryContextType {
   isLoggedIn: boolean;
   authLoading: boolean;
   userRole: 'STUDENT' | 'AUTHOR' | 'ADMIN' | null;
+  activePortal: 'STUDENT' | 'AUTHOR' | 'ADMIN' | null;
   authError: string;
   theme: BackgroundTheme;
   setTheme: (theme: BackgroundTheme) => void;
@@ -212,6 +213,8 @@ export const LibraryProvider: React.FC<{
   >(null);
 
   const [authError, setAuthError] = useState('');
+  const [activePortal, setActivePortal] = useState<'STUDENT' | 'AUTHOR' | 'ADMIN' | null>(null);
+  const requestedPortalRef = useRef<'STUDENT' | 'AUTHOR' | 'ADMIN' | null>(null);
 
   const [theme, setThemeState] =
     useState<BackgroundTheme>('amethyst');
@@ -480,6 +483,7 @@ export const LibraryProvider: React.FC<{
 
         setIsLoggedIn(false);
         setUserRole(null);
+        setActivePortal(null);
         setCurrentPageState('dashboard');
 
         return;
@@ -510,12 +514,8 @@ export const LibraryProvider: React.FC<{
           prev.year
       }));
 
-      setUserRole(
-        data.role as
-          | 'STUDENT'
-          | 'AUTHOR'
-          | 'ADMIN'
-      );
+      setUserRole(data.role as 'STUDENT' | 'AUTHOR' | 'ADMIN');
+      setActivePortal(requestedPortalRef.current || (data.role as 'STUDENT' | 'AUTHOR' | 'ADMIN'));
 
       setIsLoggedIn(true);
 
@@ -555,6 +555,7 @@ export const LibraryProvider: React.FC<{
           if (!session) {
             setIsLoggedIn(false);
             setUserRole(null);
+            setActivePortal(null);
             setAuthLoading(false);
             setCurrentPageState('dashboard');
           } else if (event === 'SIGNED_IN') {
@@ -2050,6 +2051,7 @@ export const LibraryProvider: React.FC<{
       | 'ADMIN'
   ): Promise<boolean> => {
     setAuthError('');
+    requestedPortalRef.current = expectedRole;
 
     console.log(
       'LOGIN START'
@@ -2186,10 +2188,7 @@ export const LibraryProvider: React.FC<{
     /*
      * ROLE CHECK
      */
-    if (
-      profile.role !==
-      expectedRole
-    ) {
+    if (profile.role !== expectedRole && profile.role !== 'ADMIN') {
       console.error(
         'ROLE MISMATCH:',
         'Expected:',
@@ -2242,12 +2241,8 @@ export const LibraryProvider: React.FC<{
         prev.year
     }));
 
-    setUserRole(
-      profile.role as
-        | 'STUDENT'
-        | 'AUTHOR'
-        | 'ADMIN'
-    );
+    setUserRole(profile.role as 'STUDENT' | 'AUTHOR' | 'ADMIN');
+    setActivePortal(expectedRole);
 
     setIsLoggedIn(true);
 
@@ -2297,6 +2292,8 @@ export const LibraryProvider: React.FC<{
 
     setIsLoggedIn(false);
     setUserRole(null);
+    setActivePortal(null);
+    requestedPortalRef.current = null;
     setCurrentPageState(
       'dashboard'
     );
@@ -2347,6 +2344,8 @@ export const LibraryProvider: React.FC<{
         authLoading,
 
         userRole,
+
+        activePortal,
 
         authError,
 
