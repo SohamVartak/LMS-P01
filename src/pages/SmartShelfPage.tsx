@@ -15,11 +15,12 @@ import {
 
 export const SmartShelfPage: React.FC = () => {
   const { shelves, books, openBookModal, borrowBook, addToast } = useLibrary();
-  const [selectedShelfCode, setSelectedShelfCode] = useState<string>('A1');
+  const [selectedShelfCode, setSelectedShelfCode] = useState<string>('');
   const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanSuccess, setScanSuccess] = useState<string | null>(null);
 
   const currentShelf = shelves.find(s => s.code === selectedShelfCode) || shelves[0];
+  if (!currentShelf) return <div className="p-8 text-sm text-slate-500">No shelf records are currently configured.</div>;
   
   // Filter books matching current shelf
   const shelfBooks = books.filter(b => b.category === currentShelf.category);
@@ -30,8 +31,8 @@ export const SmartShelfPage: React.FC = () => {
 
     setTimeout(() => {
       setIsScanning(false);
-      setScanSuccess(`Shelf ${currentShelf.code} verified! Stacks RFID synchronized.`);
-      addToast('Shelf QR Scanned', `Connected to Physical Rack: ${currentShelf.code} (${currentShelf.category})`, 'success');
+      setScanSuccess(`Shelf ${currentShelf.code} selected.`);
+      addToast('Shelf QR Scanned', `Shelf record: ${currentShelf.code} (${currentShelf.category})`, 'success');
     }, 1200);
   };
 
@@ -120,7 +121,7 @@ export const SmartShelfPage: React.FC = () => {
           <div className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between text-xs text-slate-600 font-tabular">
             <div className="flex items-center gap-2">
               <MapPin className="w-4 h-4 text-blue-600" />
-              <span>Aisle Location: Row 4, Bay C</span>
+              <span>Aisle Location: {currentShelf.section}</span>
             </div>
             <span>QR Tag: {currentShelf.qrPayload}</span>
           </div>
@@ -160,7 +161,7 @@ export const SmartShelfPage: React.FC = () => {
               className="w-full py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
             >
               <ScanLine className="w-4 h-4" />
-              <span>{isScanning ? 'Reading Optical Tag...' : 'Simulate QR Scan'}</span>
+              <span>{isScanning ? 'Reading Optical Tag...' : 'Scan Shelf Tag'}</span>
             </button>
           )}
 
