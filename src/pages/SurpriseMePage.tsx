@@ -19,7 +19,7 @@ export const SurpriseMePage: React.FC = () => {
 
   const [isFlipped, setIsFlipped] = useState(false);
   const [isRolling, setIsRolling] = useState(false);
-  const [randomBook, setRandomBook] = useState<Book>(books[0]);
+  const [randomBook, setRandomBook] = useState<Book | null>(null);
   const [filterPreference, setFilterPreference] = useState<'any' | 'quick' | 'masterpiece'>('any');
 
   const handleRollDice = () => {
@@ -29,9 +29,9 @@ export const SurpriseMePage: React.FC = () => {
     setTimeout(() => {
       let pool = [...books];
       if (filterPreference === 'quick') {
-        pool = books.filter(b => b.readingTimeHours <= 15);
+        pool = books.filter(b => b.pages > 0 && b.pages <= 450);
       } else if (filterPreference === 'masterpiece') {
-        pool = books.filter(b => b.rating >= 4.75);
+        pool = books.filter(b => (b.onlineRating ?? 0) >= 4);
       }
 
       if (pool.length === 0) pool = books;
@@ -43,7 +43,9 @@ export const SurpriseMePage: React.FC = () => {
     }, 600);
   };
 
-  const isSaved = wishlist.includes(randomBook.id);
+  if (!randomBook) { /* empty state is rendered below */ }
+
+  const isSaved = randomBook ? wishlist.includes(randomBook.id) : false;
 
   return (
     <div className="space-y-8 max-w-3xl mx-auto animate-in fade-in duration-300">
@@ -82,7 +84,7 @@ export const SurpriseMePage: React.FC = () => {
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
         >
-          Quick Reads (&le; 15h)
+          Quick Reads
         </button>
         <button
           onClick={() => setFilterPreference('masterpiece')}
@@ -92,7 +94,7 @@ export const SurpriseMePage: React.FC = () => {
               : 'bg-slate-100 text-slate-600 hover:bg-slate-200'
           }`}
         >
-          Top Rated (&ge; 4.75★)
+          Top Rated
         </button>
       </div>
 
@@ -114,7 +116,7 @@ export const SurpriseMePage: React.FC = () => {
                 Uncharted Knowledge Awaits
               </h2>
               <p className="text-xs text-blue-200/80 leading-relaxed">
-                Step outside your comfort zone. Click the button below to randomly select from SIT Central Library&apos;s 30 curated texts.
+                Step outside your comfort zone. Click the button below to randomly select from the current approved engineering catalogue.
               </p>
             </div>
 
