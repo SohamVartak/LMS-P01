@@ -1,5 +1,13 @@
-import React, { createContext, useContext, useState, useEffect, useRef } from 'react';
+import React, {
+  createContext,
+  useContext,
+  useState,
+  useEffect,
+  useRef
+} from 'react';
+
 import { supabase } from '../lib/supabase';
+
 import {
   Book,
   User,
@@ -16,6 +24,7 @@ import {
   SearchHistoryItem,
   BackgroundTheme
 } from '../types';
+
 import {
   INITIAL_BOOKS,
   INITIAL_USER,
@@ -29,40 +38,93 @@ import {
   INITIAL_SEARCH_HISTORY
 } from '../data/mockData';
 
+
+/* =========================================================
+   LIBRARY CONTEXT TYPE
+   ========================================================= */
+
 interface LibraryContextType {
   books: Book[];
-  user: User;
-  borrowedBooks: BorrowRecord[];
-  wishlist: string[];
-  reservations: SeatReservation[];
-  exchangeItems: BookExchangeItem[];
-  companions: ReadingCompanion[];
-  shelves: ShelfInfo[];
-  notifications: NotificationItem[];
-  activities: ActivityTimelineItem[];
-  searchHistory: SearchHistoryItem[];
-  selectedBookModal: Book | null;
-  toasts: ToastMessage[];
-  currentPage: NavigationPage;
-  isLoggedIn: boolean;
-  authLoading: boolean;
-  userRole: 'STUDENT' | 'AUTHOR' | 'ADMIN' | null;
-  activePortal: 'STUDENT' | 'AUTHOR' | 'ADMIN' | null;
-  authError: string;
-  theme: BackgroundTheme;
-  setTheme: (theme: BackgroundTheme) => void;
 
-  setCurrentPage: (page: NavigationPage) => void;
-  openBookModal: (book: Book) => void;
+  user: User;
+
+  borrowedBooks: BorrowRecord[];
+
+  wishlist: string[];
+
+  reservations: SeatReservation[];
+
+  exchangeItems: BookExchangeItem[];
+
+  companions: ReadingCompanion[];
+
+  shelves: ShelfInfo[];
+
+  notifications: NotificationItem[];
+
+  activities: ActivityTimelineItem[];
+
+  searchHistory: SearchHistoryItem[];
+
+  selectedBookModal: Book | null;
+
+  toasts: ToastMessage[];
+
+  currentPage: NavigationPage;
+
+  isLoggedIn: boolean;
+
+  authLoading: boolean;
+
+  userRole:
+    | 'STUDENT'
+    | 'AUTHOR'
+    | 'ADMIN'
+    | null;
+
+  activePortal:
+    | 'STUDENT'
+    | 'AUTHOR'
+    | 'ADMIN'
+    | null;
+
+  authError: string;
+
+  theme: BackgroundTheme;
+
+  setTheme: (
+    theme: BackgroundTheme
+  ) => void;
+
+
+  setCurrentPage: (
+    page: NavigationPage
+  ) => void;
+
+
+  openBookModal: (
+    book: Book
+  ) => void;
+
+
   closeBookModal: () => void;
+
 
   addToast: (
     title: string,
     description: string,
-    type?: 'success' | 'warning' | 'error' | 'info'
+    type?:
+      | 'success'
+      | 'warning'
+      | 'error'
+      | 'info'
   ) => void;
 
-  removeToast: (id: string) => void;
+
+  removeToast: (
+    id: string
+  ) => void;
+
 
   addSearchHistory: (
     query: string,
@@ -70,20 +132,45 @@ interface LibraryContextType {
     category?: string
   ) => void;
 
-  removeSearchHistoryItem: (id: string) => void;
+
+  removeSearchHistoryItem: (
+    id: string
+  ) => void;
+
+
   clearSearchHistory: () => void;
 
-  borrowBook: (bookId: string) => boolean;
-  reserveBook: (bookId: string) => Promise<boolean>;
-  cancelBookReservation: (borrowRecordId: string) => Promise<boolean>;
-  returnBook: (borrowRecordId: string) => void;
 
-  toggleWishlist: (bookId: string) => void;
+  borrowBook: (
+    bookId: string
+  ) => boolean;
+
+
+  reserveBook: (
+    bookId: string
+  ) => Promise<boolean>;
+
+
+  cancelBookReservation: (
+    borrowRecordId: string
+  ) => Promise<boolean>;
+
+
+  returnBook: (
+    borrowRecordId: string
+  ) => void;
+
+
+  toggleWishlist: (
+    bookId: string
+  ) => void;
+
 
   updateReadingProgress: (
     borrowRecordId: string,
     percent: number
   ) => void;
+
 
   reserveSeat: (
     floor: number,
@@ -93,7 +180,11 @@ interface LibraryContextType {
     section: string
   ) => boolean;
 
-  cancelSeatReservation: (resId: string) => void;
+
+  cancelSeatReservation: (
+    resId: string
+  ) => void;
+
 
   updateBookCondition: (
     bookId: string,
@@ -101,127 +192,274 @@ interface LibraryContextType {
     notes?: string
   ) => void;
 
-  addExchangeListing: (item: {
-    title: string;
-    author: string;
-    category: string;
-    condition: BookCondition;
-    description: string;
-  }) => void;
 
-  requestExchange: (itemId: string) => void;
-  connectCompanion: (companionId: string) => void;
+  addExchangeListing: (
+    item: {
+      title: string;
+      author: string;
+      category: string;
+      condition: BookCondition;
+      description: string;
+    }
+  ) => void;
 
-  markNotificationRead: (notifId: string) => void;
+
+  requestExchange: (
+    itemId: string
+  ) => void;
+
+
+  connectCompanion: (
+    companionId: string
+  ) => void;
+
+
+  markNotificationRead: (
+    notifId: string
+  ) => void;
+
+
   markAllNotificationsRead: () => void;
 
-  updateUserProfile: (updated: Partial<User>) => void;
+
+  updateUserProfile: (
+    updated: Partial<User>
+  ) => void;
+
 
   login: (
     email: string,
     password: string,
-    expectedRole: 'STUDENT' | 'AUTHOR' | 'ADMIN'
+    expectedRole:
+      | 'STUDENT'
+      | 'AUTHOR'
+      | 'ADMIN'
   ) => Promise<boolean>;
+
 
   logout: () => Promise<void>;
 
+
   refreshBooks: () => Promise<void>;
 
-  createBook: (book: AdminBookInput) => Promise<boolean>;
+
+  createBook: (
+    book: AdminBookInput
+  ) => Promise<boolean>;
+
+
   updateBook: (
     bookId: string,
     book: AdminBookInput
   ) => Promise<boolean>;
 
-  deleteBook: (bookId: string) => Promise<boolean>;
+
+  deleteBook: (
+    bookId: string
+  ) => Promise<boolean>;
 }
+
+
+/* =========================================================
+   ADMIN BOOK INPUT
+   ========================================================= */
 
 export interface AdminBookInput {
   isbn: string;
+
   title: string;
+
   author_name: string;
+
   category: string;
+
   description: string;
+
   publication_year: number | null;
+
   publisher: string;
+
   total_copies: number;
+
   available_copies: number;
+
   shelf_location: string;
+
   shelf_id: string;
+
   condition: BookCondition;
+
   condition_notes: string;
 }
 
-const LibraryContext = createContext<
-  LibraryContextType | undefined
->(undefined);
 
-export const LibraryProvider: React.FC<{
-  children: React.ReactNode;
-}> = ({ children }) => {
-  const [books, setBooks] = useState<Book[]>(INITIAL_BOOKS);
+/* =========================================================
+   CONTEXT
+   ========================================================= */
 
-  const [user, setUser] = useState<User>(INITIAL_USER);
+const LibraryContext =
+  createContext<
+    LibraryContextType | undefined
+  >(undefined);
+
+
+/* =========================================================
+   PROVIDER
+   ========================================================= */
+
+export const LibraryProvider:
+  React.FC<{
+    children: React.ReactNode;
+  }> = ({
+    children
+  }) => {
+
+
+  /* =======================================================
+     BASIC STATE
+     ======================================================= */
+
+  const [books, setBooks] =
+    useState<Book[]>(
+      INITIAL_BOOKS
+    );
+
+
+  const [user, setUser] =
+    useState<User>(
+      INITIAL_USER
+    );
+
 
   const [borrowedBooks, setBorrowedBooks] =
-    useState<BorrowRecord[]>(INITIAL_BORROW_RECORDS);
+    useState<BorrowRecord[]>(
+      INITIAL_BORROW_RECORDS
+    );
 
-  const [wishlist, setWishlist] = useState<string[]>([
-    'b-7',
-    'b-8',
-    'b-24'
-  ]);
+
+  const [wishlist, setWishlist] =
+    useState<string[]>([
+      'b-7',
+      'b-8',
+      'b-24'
+    ]);
+
 
   const [reservations, setReservations] =
-    useState<SeatReservation[]>(INITIAL_SEAT_RESERVATIONS);
+    useState<SeatReservation[]>(
+      INITIAL_SEAT_RESERVATIONS
+    );
+
 
   const [exchangeItems, setExchangeItems] =
-    useState<BookExchangeItem[]>(INITIAL_EXCHANGE_ITEMS);
+    useState<BookExchangeItem[]>(
+      INITIAL_EXCHANGE_ITEMS
+    );
+
 
   const [companions, setCompanions] =
-    useState<ReadingCompanion[]>(INITIAL_COMPANIONS);
+    useState<ReadingCompanion[]>(
+      INITIAL_COMPANIONS
+    );
+
 
   const [shelves] =
-    useState<ShelfInfo[]>(INITIAL_SHELVES);
+    useState<ShelfInfo[]>(
+      INITIAL_SHELVES
+    );
+
 
   const [notifications, setNotifications] =
-    useState<NotificationItem[]>(INITIAL_NOTIFICATIONS);
+    useState<NotificationItem[]>(
+      INITIAL_NOTIFICATIONS
+    );
+
 
   const [activities, setActivities] =
-    useState<ActivityTimelineItem[]>(INITIAL_ACTIVITIES);
+    useState<ActivityTimelineItem[]>(
+      INITIAL_ACTIVITIES
+    );
+
 
   const [searchHistory, setSearchHistory] =
-    useState<SearchHistoryItem[]>(INITIAL_SEARCH_HISTORY);
+    useState<SearchHistoryItem[]>(
+      INITIAL_SEARCH_HISTORY
+    );
+
 
   const [selectedBookModal, setSelectedBookModal] =
-    useState<Book | null>(null);
+    useState<Book | null>(
+      null
+    );
+
 
   const [toasts, setToasts] =
-    useState<ToastMessage[]>([]);
+    useState<ToastMessage[]>(
+      []
+    );
+
 
   const [currentPage, setCurrentPageState] =
-    useState<NavigationPage>('dashboard');
+    useState<NavigationPage>(
+      'dashboard'
+    );
+
 
   const [isLoggedIn, setIsLoggedIn] =
-    useState<boolean>(false);
+    useState<boolean>(
+      false
+    );
+
 
   const [authLoading, setAuthLoading] =
-    useState<boolean>(true);
+    useState<boolean>(
+      true
+    );
 
-  const [userRole, setUserRole] = useState<
-    'STUDENT' | 'AUTHOR' | 'ADMIN' | null
-  >(null);
 
-  const [authError, setAuthError] = useState('');
-  const [activePortal, setActivePortal] = useState<'STUDENT' | 'AUTHOR' | 'ADMIN' | null>(null);
-  const requestedPortalRef = useRef<'STUDENT' | 'AUTHOR' | 'ADMIN' | null>(null);
+  const [userRole, setUserRole] =
+    useState<
+      'STUDENT'
+      | 'AUTHOR'
+      | 'ADMIN'
+      | null
+    >(null);
+
+
+  const [authError, setAuthError] =
+    useState(
+      ''
+    );
+
+
+  const [activePortal, setActivePortal] =
+    useState<
+      'STUDENT'
+      | 'AUTHOR'
+      | 'ADMIN'
+      | null
+    >(null);
+
+
+  const requestedPortalRef =
+    useRef<
+      'STUDENT'
+      | 'AUTHOR'
+      | 'ADMIN'
+      | null
+    >(null);
+
 
   const [theme, setThemeState] =
-    useState<BackgroundTheme>('amethyst');
+    useState<BackgroundTheme>(
+      'amethyst'
+    );
 
-  /*
-   * THEME
-   */
+
+  /* =======================================================
+     THEME INITIALIZATION
+     ======================================================= */
+
   useEffect(() => {
     document.documentElement.setAttribute(
       'data-theme',
@@ -229,264 +467,478 @@ export const LibraryProvider: React.FC<{
     );
   }, [theme]);
 
-  /*
-   * LOAD STUDENT DATA
-   */
-  const loadStudentData = async (userId: string) => {
-    if (!userId) return;
 
-    /*
-     * BOOKS
-     */
+  /* =======================================================
+     BOOK MAPPER
+     
+     This keeps the database -> frontend conversion
+     in one place.
+     ======================================================= */
+
+  const mapDatabaseBook = (
+    b: any
+  ): Book => {
+
+    return {
+      id:
+        b.id,
+
+      isbn:
+        b.isbn || '',
+
+      title:
+        b.title,
+
+      author:
+        b.author_name ||
+        'Unknown Author',
+
+      category:
+        (b.category ||
+          'Computer Science') as Book['category'],
+
+      description:
+        b.description ||
+        '',
+
+      rating:
+        0,
+
+      reviewsCount:
+        0,
+
+      pages:
+        0,
+
+      readingTimeHours:
+        0,
+
+      shelfLocation:
+        b.shelf_location ||
+        'Not assigned',
+
+      shelfId:
+        b.shelf_id ||
+        '',
+
+      totalCopies:
+        b.total_copies ||
+        0,
+
+      availableCopies:
+        b.available_copies ||
+        0,
+
+      condition:
+        (b.condition ||
+          'Good') as BookCondition,
+
+      conditionNotes:
+        b.condition_notes ||
+        '',
+
+      lastCheckedDate:
+        b.updated_at
+          ? b.updated_at.slice(
+              0,
+              10
+            )
+          : '',
+
+      publicationYear:
+        b.publication_year ||
+        0,
+
+      publisher:
+        b.publisher ||
+        '',
+
+      coverGradient:
+        'from-slate-800 to-violet-950',
+
+      coverAccent:
+        '#F97316',
+
+      popularityScore:
+        0,
+
+      aiSummary: {
+        summary:
+          b.ai_summary ||
+          b.description ||
+          'No AI summary available yet.',
+
+        keyIdeas:
+          [],
+
+        importantConcepts:
+          [],
+
+        mainTakeaways:
+          [],
+
+        whyRead:
+          ''
+      }
+    };
+  };
+
+
+  /* =======================================================
+     LOAD STUDENT DATA
+     ======================================================= */
+
+  const loadStudentData = async (
+    userId: string
+  ) => {
+
+    if (!userId) {
+      return;
+    }
+
+
+    /* -------------------------------------------------------
+       BOOKS
+       ------------------------------------------------------- */
+
     const {
       data: dbBooks,
       error: booksError
-    } = await supabase
-      .from('books')
-      .select('*')
-      .order('title', { ascending: true });
+    } =
+      await supabase
+        .from('books')
+        .select('*')
+        .order(
+          'title',
+          {
+            ascending:
+              true
+          }
+        );
+
 
     if (
       !booksError &&
       dbBooks &&
       dbBooks.length > 0
     ) {
-      const mappedBooks: Book[] =
-        dbBooks.map((b: any) => ({
-          id: b.id,
-          isbn: b.isbn || '',
-          title: b.title,
-          author:
-            b.author_name || 'Unknown Author',
 
-          category:
-            (b.category ||
-              'Computer Science') as Book['category'],
+      const mappedBooks:
+        Book[] =
+        dbBooks.map(
+          mapDatabaseBook
+        );
 
-          description: b.description || '',
+      setBooks(
+        mappedBooks
+      );
 
-          rating: 0,
-          reviewsCount: 0,
-          pages: 0,
-          readingTimeHours: 0,
-
-          shelfLocation:
-            b.shelf_location || 'Not assigned',
-
-          shelfId: b.shelf_id || '',
-
-          totalCopies:
-            b.total_copies || 0,
-
-          availableCopies:
-            b.available_copies || 0,
-
-          condition:
-            (b.condition ||
-              'Good') as BookCondition,
-
-          conditionNotes:
-            b.condition_notes || '',
-
-          lastCheckedDate:
-            b.updated_at
-              ? b.updated_at.slice(0, 10)
-              : '',
-
-          publicationYear:
-            b.publication_year || 0,
-
-          publisher: b.publisher || '',
-
-          coverGradient:
-            'from-slate-800 to-violet-950',
-
-          coverAccent: '#F97316',
-
-          popularityScore: 0,
-
-          aiSummary: {
-            summary:
-              b.ai_summary ||
-              b.description ||
-              'No AI summary available yet.',
-
-            keyIdeas: [],
-            importantConcepts: [],
-            mainTakeaways: [],
-            whyRead: ''
-          }
-        }));
-
-      setBooks(mappedBooks);
     } else if (
       !booksError &&
       dbBooks &&
       dbBooks.length === 0
     ) {
-      setBooks([]);
+
+      setBooks(
+        []
+      );
     }
 
-    /*
-     * BORROW RECORDS
-     */
+
+    /* -------------------------------------------------------
+       BORROW RECORDS
+       ------------------------------------------------------- */
+
     const {
       data: dbBorrowed,
       error: borrowError
-    } = await supabase
-      .from('borrow_records')
-      .select(
-        'id, book_id, issue_date, due_date, return_date, status, books(title, author_name, category)'
-      )
-      .eq('student_id', userId)
-      .order('created_at', {
-        ascending: false
-      });
+    } =
+      await supabase
+        .from(
+          'borrow_records'
+        )
+        .select(
+          'id, book_id, issue_date, due_date, return_date, status, books(title, author_name, category)'
+        )
+        .eq(
+          'student_id',
+          userId
+        )
+        .order(
+          'created_at',
+          {
+            ascending:
+              false
+          }
+        );
 
-    if (!borrowError && dbBorrowed) {
-      const mappedBorrowed: BorrowRecord[] =
-        dbBorrowed.map((r: any) => {
-          const book = r.books || {};
 
-          const dbStatus = String(
-            r.status || 'BORROWED'
-          );
+    if (
+      !borrowError &&
+      dbBorrowed
+    ) {
 
-          const status: BorrowRecord['status'] =
-            dbStatus === 'RETURNED'
-              ? 'Completed'
-              : dbStatus === 'RESERVED'
-              ? 'Reserved'
-              : dbStatus === 'OVERDUE'
-              ? 'Overdue'
-              : 'Borrowed';
+      const mappedBorrowed:
+        BorrowRecord[] =
+        dbBorrowed.map(
+          (
+            r: any
+          ) => {
 
-          return {
-            id: r.id,
+            const book =
+              r.books ||
+              {};
 
-            bookId: r.book_id,
+            const dbStatus =
+              String(
+                r.status ||
+                  'BORROWED'
+              );
 
-            bookTitle:
-              book.title || 'Library Book',
 
-            author:
-              book.author_name ||
-              'Unknown Author',
+            const status:
+              BorrowRecord['status'] =
+              dbStatus ===
+              'RETURNED'
+                ? 'Completed'
+                : dbStatus ===
+                  'RESERVED'
+                ? 'Reserved'
+                : dbStatus ===
+                  'OVERDUE'
+                ? 'Overdue'
+                : 'Borrowed';
 
-            category:
-              (book.category ||
-                'Computer Science') as Book['category'],
 
-            coverGradient:
-              'from-slate-800 to-violet-950',
+            return {
 
-            borrowDate: r.issue_date,
+              id:
+                r.id,
 
-            dueDate: r.due_date,
+              bookId:
+                r.book_id,
 
-            status,
+              bookTitle:
+                book.title ||
+                'Library Book',
 
-            progressPercent:
-              status === 'Completed'
-                ? 100
-                : 0,
+              author:
+                book.author_name ||
+                'Unknown Author',
 
-            pagesRead: 0,
-            totalPages: 0
-          };
-        });
+              category:
+                (book.category ||
+                  'Computer Science') as Book['category'],
 
-      setBorrowedBooks(mappedBorrowed);
+              coverGradient:
+                'from-slate-800 to-violet-950',
+
+              borrowDate:
+                r.issue_date,
+
+              dueDate:
+                r.due_date,
+
+              status,
+
+              progressPercent:
+                status ===
+                'Completed'
+                  ? 100
+                  : 0,
+
+              pagesRead:
+                0,
+
+              totalPages:
+                0
+            };
+          }
+        );
+
+
+      setBorrowedBooks(
+        mappedBorrowed
+      );
     }
 
-    /*
-     * NOTIFICATIONS
-     */
+
+    /* -------------------------------------------------------
+       NOTIFICATIONS
+       ------------------------------------------------------- */
+
     const {
       data: dbNotifications,
       error: notificationsError
-    } = await supabase
-      .from('notifications')
-      .select(
-        'id, title, message, type, read, created_at'
-      )
-      .eq('user_id', userId)
-      .order('created_at', {
-        ascending: false
-      });
+    } =
+      await supabase
+        .from(
+          'notifications'
+        )
+        .select(
+          'id, title, message, type, read, created_at'
+        )
+        .eq(
+          'user_id',
+          userId
+        )
+        .order(
+          'created_at',
+          {
+            ascending:
+              false
+          }
+        );
+
 
     if (
       !notificationsError &&
       dbNotifications
     ) {
+
       setNotifications(
-        dbNotifications.map((n: any) => ({
-          id: n.id,
-          title: n.title,
-          message: n.message,
+        dbNotifications.map(
+          (
+            n: any
+          ) => ({
 
-          type:
-            (n.type ||
-              'system') as NotificationItem['type'],
+            id:
+              n.id,
 
-          timestamp:
-            new Date(
-              n.created_at
-            ).toLocaleString(),
+            title:
+              n.title,
 
-          read: n.read
-        }))
+            message:
+              n.message,
+
+            type:
+              (n.type ||
+                'system') as NotificationItem['type'],
+
+            timestamp:
+              new Date(
+                n.created_at
+              ).toLocaleString(),
+
+            read:
+              n.read
+          })
+        )
       );
     }
   };
 
-  /*
-   * AUTH + PROFILE INITIALIZATION
-   *
-   * Startup sign-out is intentionally handled without an auth-state
-   * listener. The listener previously created a race where the startup
-   * SIGNED_OUT event could arrive while Author/Admin login was completing.
-   * login() and logout() are now the only flows that change portal state.
-   */
+
+  /* =======================================================
+     AUTH INITIALIZATION
+     
+     IMPORTANT:
+     There is intentionally NO onAuthStateChange listener.
+     
+     The old listener could cause:
+     
+     login
+       ↓
+     dashboard
+       ↓
+     delayed SIGNED_OUT event
+       ↓
+     portal selection screen
+     
+     Login and logout explicitly control the UI state.
+     ======================================================= */
+
   useEffect(() => {
-    let mounted = true;
 
-    const initializeAuth = async () => {
-      await supabase.auth.signOut();
+    let mounted =
+      true;
 
-      if (!mounted) return;
 
-      setIsLoggedIn(false);
-      setUserRole(null);
-      setActivePortal(null);
-      requestedPortalRef.current = null;
-      setCurrentPageState('dashboard');
-      setAuthError('');
-      setAuthLoading(false);
-    };
+    const init =
+      async () => {
 
-    void initializeAuth();
+        /*
+         * Clear any previously persisted Supabase session.
+         *
+         * This keeps the current application behaviour where
+         * the user explicitly logs in when opening the app.
+         */
+
+        await supabase.auth.signOut();
+
+
+        if (!mounted) {
+          return;
+        }
+
+
+        setIsLoggedIn(
+          false
+        );
+
+
+        setUserRole(
+          null
+        );
+
+
+        setActivePortal(
+          null
+        );
+
+
+        requestedPortalRef.current =
+          null;
+
+
+        setCurrentPageState(
+          'dashboard'
+        );
+
+
+        setAuthError(
+          ''
+        );
+
+
+        setAuthLoading(
+          false
+        );
+      };
+
+
+    void init();
+
 
     return () => {
-      mounted = false;
+
+      mounted =
+        false;
     };
+
   }, []);
-  /*
-   * SET CURRENT PAGE
-   *
-   * Only Student accounts can enter
-   * the existing student-feature pages.
-   *
-   * Author and Administrator portals
-   * are isolated from this navigation.
-   */
+
+
+  /* =======================================================
+     CURRENT PAGE
+     ======================================================= */
+
   const setCurrentPage = (
     page: NavigationPage
   ) => {
+
+    /*
+     * Only Student accounts can access the existing
+     * student-feature pages.
+     */
+
     if (
-      activePortal !== 'STUDENT' &&
-      page !== 'dashboard'
+      activePortal !==
+        'STUDENT' &&
+      page !==
+        'dashboard'
     ) {
+
       setCurrentPageState(
         'dashboard'
       );
@@ -494,348 +946,352 @@ export const LibraryProvider: React.FC<{
       return;
     }
 
-    setCurrentPageState(page);
-  };
 
-  /*
-   * REFRESH BOOKS
-   */
-  const refreshBooks = async () => {
-    const {
-      data,
-      error
-    } = await supabase
-      .from('books')
-      .select('*')
-      .order('title', {
-        ascending: true
-      });
-
-    if (error) {
-      addToast(
-        'Books Could Not Be Loaded',
-        error.message,
-        'error'
-      );
-
-      return;
-    }
-
-    if (data) {
-      setBooks(
-        data.map((b: any) => ({
-          id: b.id,
-
-          isbn: b.isbn || '',
-
-          title: b.title,
-
-          author:
-            b.author_name ||
-            'Unknown Author',
-
-          category:
-            (b.category ||
-              'Computer Science') as Book['category'],
-
-          description:
-            b.description || '',
-
-          rating: 0,
-          reviewsCount: 0,
-          pages: 0,
-          readingTimeHours: 0,
-
-          shelfLocation:
-            b.shelf_location ||
-            'Not assigned',
-
-          shelfId:
-            b.shelf_id || '',
-
-          totalCopies:
-            b.total_copies || 0,
-
-          availableCopies:
-            b.available_copies || 0,
-
-          condition:
-            (b.condition ||
-              'Good') as BookCondition,
-
-          conditionNotes:
-            b.condition_notes || '',
-
-          lastCheckedDate:
-            b.updated_at
-              ? b.updated_at.slice(0, 10)
-              : '',
-
-          publicationYear:
-            b.publication_year || 0,
-
-          publisher:
-            b.publisher || '',
-
-          coverGradient:
-            'from-slate-800 to-violet-950',
-
-          coverAccent: '#F97316',
-
-          popularityScore: 0,
-
-          aiSummary: {
-            summary:
-              b.ai_summary ||
-              b.description ||
-              'No AI summary available yet.',
-
-            keyIdeas: [],
-            importantConcepts: [],
-            mainTakeaways: [],
-            whyRead: ''
-          }
-        }))
-      );
-    }
-  };
-
-  /*
-   * CREATE BOOK
-   *
-   * Used by Administrator.
-   */
-  const createBook = async (
-    book: AdminBookInput
-  ): Promise<boolean> => {
-    if (
-      book.available_copies >
-      book.total_copies
-    ) {
-      addToast(
-        'Invalid Copy Count',
-        'Available copies cannot exceed total copies.',
-        'warning'
-      );
-
-      return false;
-    }
-
-    const {
-      error
-    } = await supabase
-      .from('books')
-      .insert({
-        isbn:
-          book.isbn.trim() || null,
-
-        title:
-          book.title.trim(),
-
-        author_name:
-          book.author_name.trim(),
-
-        category:
-          book.category,
-
-        description:
-          book.description.trim(),
-
-        publication_year:
-          book.publication_year ||
-          null,
-
-        publisher:
-          book.publisher.trim(),
-
-        total_copies:
-          book.total_copies,
-
-        available_copies:
-          book.available_copies,
-
-        shelf_location:
-          book.shelf_location.trim(),
-
-        shelf_id:
-          book.shelf_id.trim(),
-
-        condition:
-          book.condition,
-
-        condition_notes:
-          book.condition_notes.trim()
-      });
-
-    if (error) {
-      addToast(
-        'Book Could Not Be Added',
-        error.message,
-        'error'
-      );
-
-      return false;
-    }
-
-    await refreshBooks();
-
-    addToast(
-      'Book Added',
-      'The book was added to the library catalogue.',
-      'success'
+    setCurrentPageState(
+      page
     );
-
-    return true;
   };
 
-  /*
-   * UPDATE BOOK
-   *
-   * Used by Administrator.
-   */
-  const updateBook = async (
-    bookId: string,
-    book: AdminBookInput
-  ): Promise<boolean> => {
-    if (
-      book.available_copies >
-      book.total_copies
-    ) {
-      addToast(
-        'Invalid Copy Count',
-        'Available copies cannot exceed total copies.',
-        'warning'
-      );
 
-      return false;
-    }
+  /* =======================================================
+     REFRESH BOOKS
+     ======================================================= */
 
-    const {
-      error
-    } = await supabase
-      .from('books')
-      .update({
-        isbn:
-          book.isbn.trim() || null,
+  const refreshBooks =
+    async () => {
 
-        title:
-          book.title.trim(),
+      const {
+        data,
+        error
+      } =
+        await supabase
+          .from(
+            'books'
+          )
+          .select('*')
+          .order(
+            'title',
+            {
+              ascending:
+                true
+            }
+          );
 
-        author_name:
-          book.author_name.trim(),
 
-        category:
-          book.category,
+      if (error) {
 
-        description:
-          book.description.trim(),
-
-        publication_year:
-          book.publication_year ||
-          null,
-
-        publisher:
-          book.publisher.trim(),
-
-        total_copies:
-          book.total_copies,
-
-        available_copies:
-          book.available_copies,
-
-        shelf_location:
-          book.shelf_location.trim(),
-
-        shelf_id:
-          book.shelf_id.trim(),
-
-        condition:
-          book.condition,
-
-        condition_notes:
-          book.condition_notes.trim()
-      })
-      .eq('id', bookId);
-
-    if (error) {
-      addToast(
-        'Book Could Not Be Updated',
-        error.message,
-        'error'
-      );
-
-      return false;
-    }
-
-    await refreshBooks();
-
-    addToast(
-      'Book Updated',
-      'The book was updated successfully.',
-      'success'
-    );
-
-    return true;
-  };
-
-  /*
-   * DELETE BOOK
-   *
-   * Used by Administrator.
-   */
-  const deleteBook = async (
-    bookId: string
-  ): Promise<boolean> => {
-    const {
-      error
-    } = await supabase
-      .from('books')
-      .delete()
-      .eq('id', bookId);
-
-    if (error) {
-      addToast(
-        'Book Could Not Be Deleted',
-        'The book may have borrowing history. ' +
+        addToast(
+          'Books Could Not Be Loaded',
           error.message,
-        'error'
+          'error'
+        );
+
+        return;
+      }
+
+
+      if (data) {
+
+        setBooks(
+          data.map(
+            mapDatabaseBook
+          )
+        );
+      }
+    };
+
+
+  /* =======================================================
+     CREATE BOOK
+     ======================================================= */
+
+  const createBook =
+    async (
+      book: AdminBookInput
+    ): Promise<boolean> => {
+
+      if (
+        book.available_copies >
+        book.total_copies
+      ) {
+
+        addToast(
+          'Invalid Copy Count',
+          'Available copies cannot exceed total copies.',
+          'warning'
+        );
+
+        return false;
+      }
+
+
+      const {
+        error
+      } =
+        await supabase
+          .from(
+            'books'
+          )
+          .insert({
+
+            isbn:
+              book.isbn.trim() ||
+              null,
+
+            title:
+              book.title.trim(),
+
+            author_name:
+              book.author_name.trim(),
+
+            category:
+              book.category,
+
+            description:
+              book.description.trim(),
+
+            publication_year:
+              book.publication_year ||
+              null,
+
+            publisher:
+              book.publisher.trim(),
+
+            total_copies:
+              book.total_copies,
+
+            available_copies:
+              book.available_copies,
+
+            shelf_location:
+              book.shelf_location.trim(),
+
+            shelf_id:
+              book.shelf_id.trim(),
+
+            condition:
+              book.condition,
+
+            condition_notes:
+              book.condition_notes.trim()
+          });
+
+
+      if (error) {
+
+        addToast(
+          'Book Could Not Be Added',
+          error.message,
+          'error'
+        );
+
+        return false;
+      }
+
+
+      await refreshBooks();
+
+
+      addToast(
+        'Book Added',
+        'The book was added to the library catalogue.',
+        'success'
       );
 
-      return false;
-    }
 
-    setBooks(prev =>
-      prev.filter(
-        book => book.id !== bookId
-      )
-    );
+      return true;
+    };
 
-    addToast(
-      'Book Deleted',
-      'The book was removed from the library catalogue.',
-      'success'
-    );
 
-    return true;
-  };
+  /* =======================================================
+     UPDATE BOOK
+     ======================================================= */
 
-  /*
-   * THEME
-   */
+  const updateBook =
+    async (
+      bookId: string,
+      book: AdminBookInput
+    ): Promise<boolean> => {
+
+      if (
+        book.available_copies >
+        book.total_copies
+      ) {
+
+        addToast(
+          'Invalid Copy Count',
+          'Available copies cannot exceed total copies.',
+          'warning'
+        );
+
+        return false;
+      }
+
+
+      const {
+        error
+      } =
+        await supabase
+          .from(
+            'books'
+          )
+          .update({
+
+            isbn:
+              book.isbn.trim() ||
+              null,
+
+            title:
+              book.title.trim(),
+
+            author_name:
+              book.author_name.trim(),
+
+            category:
+              book.category,
+
+            description:
+              book.description.trim(),
+
+            publication_year:
+              book.publication_year ||
+              null,
+
+            publisher:
+              book.publisher.trim(),
+
+            total_copies:
+              book.total_copies,
+
+            available_copies:
+              book.available_copies,
+
+            shelf_location:
+              book.shelf_location.trim(),
+
+            shelf_id:
+              book.shelf_id.trim(),
+
+            condition:
+              book.condition,
+
+            condition_notes:
+              book.condition_notes.trim()
+          })
+          .eq(
+            'id',
+            bookId
+          );
+
+
+      if (error) {
+
+        addToast(
+          'Book Could Not Be Updated',
+          error.message,
+          'error'
+        );
+
+        return false;
+      }
+
+
+      await refreshBooks();
+
+
+      addToast(
+        'Book Updated',
+        'The book was updated successfully.',
+        'success'
+      );
+
+
+      return true;
+    };
+
+
+  /* =======================================================
+     DELETE BOOK
+     ======================================================= */
+
+  const deleteBook =
+    async (
+      bookId: string
+    ): Promise<boolean> => {
+
+      const {
+        error
+      } =
+        await supabase
+          .from(
+            'books'
+          )
+          .delete()
+          .eq(
+            'id',
+            bookId
+          );
+
+
+      if (error) {
+
+        addToast(
+          'Book Could Not Be Deleted',
+          'The book may have borrowing history. ' +
+            error.message,
+          'error'
+        );
+
+        return false;
+      }
+
+
+      setBooks(
+        prev =>
+          prev.filter(
+            book =>
+              book.id !==
+              bookId
+          )
+      );
+
+
+      addToast(
+        'Book Deleted',
+        'The book was removed from the library catalogue.',
+        'success'
+      );
+
+
+      return true;
+    };
+
+
+  /* =======================================================
+     THEME
+     ======================================================= */
+
   const setTheme = (
     newTheme: BackgroundTheme
   ) => {
-    setThemeState(newTheme);
+
+    setThemeState(
+      newTheme
+    );
+
 
     document.documentElement.setAttribute(
       'data-theme',
       newTheme
     );
 
-    const themeNames: Record<
-      BackgroundTheme,
-      string
-    > = {
+
+    const themeNames:
+      Record<
+        BackgroundTheme,
+        string
+      > = {
+
       amethyst:
         'Cosmic Amethyst (Vibrant Deep Violet & Neon Amber)',
 
@@ -873,6 +1329,7 @@ export const LibraryProvider: React.FC<{
         'Cosmic Charcoal (Deep Obsidian Night & Electric Violet)'
     };
 
+
     addToast(
       'Palette Updated',
       `Background theme set to ${themeNames[newTheme]}`,
@@ -880,74 +1337,105 @@ export const LibraryProvider: React.FC<{
     );
   };
 
-  /*
-   * SEARCH HISTORY
-   */
+
+  /* =======================================================
+     SEARCH HISTORY
+     ======================================================= */
+
   const addSearchHistory = (
     query: string,
     resultsCount: number,
     category?: string
   ) => {
+
     const trimmed =
       query.trim();
 
-    if (!trimmed) return;
 
-    setSearchHistory(prev => {
-      const filtered =
-        prev.filter(
-          item =>
-            item.query.toLowerCase() !==
-            trimmed.toLowerCase()
+    if (!trimmed) {
+      return;
+    }
+
+
+    setSearchHistory(
+      prev => {
+
+        const filtered =
+          prev.filter(
+            item =>
+              item.query.toLowerCase() !==
+              trimmed.toLowerCase()
+          );
+
+
+        const newItem:
+          SearchHistoryItem = {
+
+          id:
+            'sh-' +
+            Date.now(),
+
+          query:
+            trimmed,
+
+          timestamp:
+            'Just now',
+
+          category:
+            category ||
+            'All Disciplines',
+
+          resultsCount
+        };
+
+
+        return [
+          newItem,
+          ...filtered
+        ].slice(
+          0,
+          12
         );
-
-      const newItem: SearchHistoryItem = {
-        id:
-          'sh-' +
-          Date.now(),
-
-        query: trimmed,
-
-        timestamp:
-          'Just now',
-
-        category:
-          category ||
-          'All Disciplines',
-
-        resultsCount
-      };
-
-      return [
-        newItem,
-        ...filtered
-      ].slice(0, 12);
-    });
+      }
+    );
   };
+
 
   const removeSearchHistoryItem = (
     id: string
   ) => {
-    setSearchHistory(prev =>
-      prev.filter(
-        item => item.id !== id
-      )
+
+    setSearchHistory(
+      prev =>
+        prev.filter(
+          item =>
+            item.id !==
+            id
+        )
     );
   };
 
-  const clearSearchHistory = () => {
-    setSearchHistory([]);
 
-    addToast(
-      'Search History Cleared',
-      'Your recent catalogue searches have been wiped.',
-      'info'
-    );
-  };
+  const clearSearchHistory =
+    () => {
 
-  /*
-   * TOASTS
-   */
+      setSearchHistory(
+        []
+      );
+
+
+      addToast(
+        'Search History Cleared',
+        'Your recent catalogue searches have been wiped.',
+        'info'
+      );
+    };
+
+
+  /* =======================================================
+     TOASTS
+     ======================================================= */
+
   const addToast = (
     title: string,
     description: string,
@@ -955,74 +1443,110 @@ export const LibraryProvider: React.FC<{
       | 'success'
       | 'warning'
       | 'error'
-      | 'info' = 'success'
+      | 'info' =
+      'success'
   ) => {
+
     const id =
       'toast-' +
       Date.now() +
       '-' +
       Math.random()
         .toString(36)
-        .substring(2, 7);
+        .substring(
+          2,
+          7
+        );
 
-    setToasts(prev => [
-      ...prev,
-      {
-        id,
-        title,
-        description,
-        type
-      }
-    ]);
 
-    setTimeout(() => {
-      removeToast(id);
-    }, 4500);
+    setToasts(
+      prev => [
+        ...prev,
+        {
+          id,
+          title,
+          description,
+          type
+        }
+      ]
+    );
+
+
+    setTimeout(
+      () => {
+        removeToast(
+          id
+        );
+      },
+      4500
+    );
   };
+
 
   const removeToast = (
     id: string
   ) => {
-    setToasts(prev =>
-      prev.filter(
-        t => t.id !== id
-      )
+
+    setToasts(
+      prev =>
+        prev.filter(
+          t =>
+            t.id !==
+            id
+        )
     );
   };
 
-  /*
-   * BOOK MODAL
-   */
+
+  /* =======================================================
+     BOOK MODAL
+     ======================================================= */
+
   const openBookModal = (
     book: Book
   ) => {
-    setSelectedBookModal(book);
+
+    setSelectedBookModal(
+      book
+    );
   };
 
-  const closeBookModal = () => {
-    setSelectedBookModal(null);
-  };
 
-  /*
-   * BORROW BOOK
-   *
-   * Legacy/local behaviour retained
-   * for existing student UI.
-   */
+  const closeBookModal =
+    () => {
+
+      setSelectedBookModal(
+        null
+      );
+    };
+
+
+  /* =======================================================
+     BORROW BOOK
+     ======================================================= */
+
   const borrowBook = (
     bookId: string
   ): boolean => {
+
     const targetBook =
       books.find(
-        b => b.id === bookId
+        b =>
+          b.id ===
+          bookId
       );
 
-    if (!targetBook) return false;
+
+    if (!targetBook) {
+      return false;
+    }
+
 
     const alreadyBorrowed =
       borrowedBooks.some(
         b =>
-          b.bookId === bookId &&
+          b.bookId ===
+            bookId &&
           (
             b.status ===
               'Currently Reading' ||
@@ -1031,7 +1555,11 @@ export const LibraryProvider: React.FC<{
           )
       );
 
-    if (alreadyBorrowed) {
+
+    if (
+      alreadyBorrowed
+    ) {
+
       addToast(
         'Already Borrowed',
         `You currently hold an active issue for "${targetBook.title}".`,
@@ -1041,10 +1569,12 @@ export const LibraryProvider: React.FC<{
       return false;
     }
 
+
     if (
       targetBook.availableCopies <=
       0
     ) {
+
       addToast(
         'No Copies Available',
         'All physical copies are checked out. You can reserve this title.',
@@ -1054,35 +1584,53 @@ export const LibraryProvider: React.FC<{
       return false;
     }
 
-    setBooks(prev =>
-      prev.map(b =>
-        b.id === bookId
-          ? {
-              ...b,
-              availableCopies:
-                b.availableCopies - 1
-            }
-          : b
-      )
+
+    setBooks(
+      prev =>
+        prev.map(
+          b =>
+            b.id ===
+            bookId
+              ? {
+                  ...b,
+
+                  availableCopies:
+                    b.availableCopies -
+                    1
+                }
+              : b
+        )
     );
+
 
     const due =
       new Date();
 
+
     due.setDate(
-      due.getDate() + 14
+      due.getDate() +
+        14
     );
+
 
     const dueDateStr =
       due.toISOString()
-        .split('T')[0];
+        .split(
+          'T'
+        )[0];
+
 
     const todayStr =
       new Date()
         .toISOString()
-        .split('T')[0];
+        .split(
+          'T'
+        )[0];
 
-    const newRecord: BorrowRecord = {
+
+    const newRecord:
+      BorrowRecord = {
+
       id:
         'br-' +
         Date.now(),
@@ -1111,11 +1659,16 @@ export const LibraryProvider: React.FC<{
       status:
         'Borrowed',
 
-      progressPercent: 0,
-      pagesRead: 0,
+      progressPercent:
+        0,
+
+      pagesRead:
+        0,
+
       totalPages:
         targetBook.pages
     };
+
 
     setBorrowedBooks(
       prev => [
@@ -1124,37 +1677,46 @@ export const LibraryProvider: React.FC<{
       ]
     );
 
-    setUser(prev => ({
-      ...prev,
 
-      booksBorrowed:
-        prev.booksBorrowed + 1,
+    setUser(
+      prev => ({
+        ...prev,
 
-      pendingReturns:
-        prev.pendingReturns + 1
-    }));
+        booksBorrowed:
+          prev.booksBorrowed +
+          1,
 
-    setActivities(prev => [
-      {
-        id:
-          'act-' +
-          Date.now(),
+        pendingReturns:
+          prev.pendingReturns +
+          1
+      })
+    );
 
-        title:
-          'Book Borrowed',
 
-        description:
-          `Checked out "${targetBook.title}" (Due: ${dueDateStr})`,
+    setActivities(
+      prev => [
+        {
+          id:
+            'act-' +
+            Date.now(),
 
-        timestamp:
-          'Just now',
+          title:
+            'Book Borrowed',
 
-        type:
-          'borrow'
-      },
+          description:
+            `Checked out "${targetBook.title}" (Due: ${dueDateStr})`,
 
-      ...prev
-    ]);
+          timestamp:
+            'Just now',
+
+          type:
+            'borrow'
+        },
+
+        ...prev
+      ]
+    );
+
 
     addToast(
       'Book Issued Successfully',
@@ -1162,128 +1724,166 @@ export const LibraryProvider: React.FC<{
       'success'
     );
 
-    return true;
-  };
-
-  /*
-   * RESERVE BOOK
-   *
-   * Real Supabase reservation.
-   */
-  const reserveBook = async (
-    bookId: string
-  ): Promise<boolean> => {
-    if (
-      userRole !== 'STUDENT' ||
-      !user.id
-    ) {
-      return false;
-    }
-
-    const targetBook =
-      books.find(
-        b => b.id === bookId
-      );
-
-    if (!targetBook) {
-      return false;
-    }
-
-    const alreadyActive =
-      borrowedBooks.some(
-        b =>
-          b.bookId === bookId &&
-          [
-            'Borrowed',
-            'Currently Reading',
-            'Reserved'
-          ].includes(b.status)
-      );
-
-    if (alreadyActive) {
-      addToast(
-        'Already Requested',
-        'You already have an active request or issue for this book.',
-        'info'
-      );
-
-      return false;
-    }
-
-    const {
-      error
-    } = await supabase
-      .from('borrow_records')
-      .insert({
-        book_id:
-          bookId,
-
-        student_id:
-          user.id,
-
-        due_date:
-          null,
-
-        status:
-          'RESERVED'
-      });
-
-    if (error) {
-      addToast(
-        'Reservation Failed',
-        error.message,
-        'error'
-      );
-
-      return false;
-    }
-
-    await loadStudentData(
-      user.id
-    );
-
-    addToast(
-      'Reservation Submitted',
-      `"${targetBook.title}" has been requested. The administrator will issue it to you.`,
-      'success'
-    );
 
     return true;
   };
 
-  /*
-   * CANCEL RESERVATION
-   */
+
+  /* =======================================================
+     RESERVE BOOK
+     ======================================================= */
+
+  const reserveBook =
+    async (
+      bookId: string
+    ): Promise<boolean> => {
+
+      if (
+        userRole !==
+          'STUDENT' ||
+        !user.id
+      ) {
+
+        return false;
+      }
+
+
+      const targetBook =
+        books.find(
+          b =>
+            b.id ===
+            bookId
+        );
+
+
+      if (!targetBook) {
+        return false;
+      }
+
+
+      const alreadyActive =
+        borrowedBooks.some(
+          b =>
+            b.bookId ===
+              bookId &&
+            [
+              'Borrowed',
+              'Currently Reading',
+              'Reserved'
+            ].includes(
+              b.status
+            )
+        );
+
+
+      if (
+        alreadyActive
+      ) {
+
+        addToast(
+          'Already Requested',
+          'You already have an active request or issue for this book.',
+          'info'
+        );
+
+        return false;
+      }
+
+
+      const {
+        error
+      } =
+        await supabase
+          .from(
+            'borrow_records'
+          )
+          .insert({
+
+            book_id:
+              bookId,
+
+            student_id:
+              user.id,
+
+            due_date:
+              null,
+
+            status:
+              'RESERVED'
+          });
+
+
+      if (error) {
+
+        addToast(
+          'Reservation Failed',
+          error.message,
+          'error'
+        );
+
+        return false;
+      }
+
+
+      await loadStudentData(
+        user.id
+      );
+
+
+      addToast(
+        'Reservation Submitted',
+        `"${targetBook.title}" has been requested. The administrator will issue it to you.`,
+        'success'
+      );
+
+
+      return true;
+    };
+
+
+  /* =======================================================
+     CANCEL BOOK RESERVATION
+     ======================================================= */
+
   const cancelBookReservation =
     async (
       borrowRecordId: string
     ): Promise<boolean> => {
+
       if (
-        userRole !== 'STUDENT' ||
+        userRole !==
+          'STUDENT' ||
         !user.id
       ) {
+
         return false;
       }
 
+
       const {
         error
-      } = await supabase
-        .from('borrow_records')
-        .delete()
-        .eq(
-          'id',
-          borrowRecordId
-        )
-        .eq(
-          'student_id',
-          user.id
-        )
-        .eq(
-          'status',
-          'RESERVED'
-        );
+      } =
+        await supabase
+          .from(
+            'borrow_records'
+          )
+          .delete()
+          .eq(
+            'id',
+            borrowRecordId
+          )
+          .eq(
+            'student_id',
+            user.id
+          )
+          .eq(
+            'status',
+            'RESERVED'
+          );
+
 
       if (error) {
+
         addToast(
           'Cancellation Failed',
           error.message,
@@ -1293,9 +1893,11 @@ export const LibraryProvider: React.FC<{
         return false;
       }
 
+
       await loadStudentData(
         user.id
       );
+
 
       addToast(
         'Reservation Cancelled',
@@ -1303,15 +1905,19 @@ export const LibraryProvider: React.FC<{
         'info'
       );
 
+
       return true;
     };
 
-  /*
-   * RETURN BOOK
-   */
+
+  /* =======================================================
+     RETURN BOOK
+     ======================================================= */
+
   const returnBook = (
     borrowRecordId: string
   ) => {
+
     const record =
       borrowedBooks.find(
         b =>
@@ -1319,75 +1925,92 @@ export const LibraryProvider: React.FC<{
           borrowRecordId
       );
 
-    if (!record) return;
 
-    setBooks(prev =>
-      prev.map(b =>
-        b.id ===
-        record.bookId
-          ? {
-              ...b,
+    if (!record) {
+      return;
+    }
 
-              availableCopies:
-                b.availableCopies +
-                1
-            }
-          : b
-      )
-    );
 
-    setBorrowedBooks(prev =>
-      prev.map(b =>
-        b.id ===
-        borrowRecordId
-          ? {
-              ...b,
+    setBooks(
+      prev =>
+        prev.map(
+          b =>
+            b.id ===
+            record.bookId
+              ? {
+                  ...b,
 
-              status:
-                'Completed',
-
-              progressPercent:
-                100
-            }
-          : b
-      )
-    );
-
-    setUser(prev => ({
-      ...prev,
-
-      booksCompleted:
-        prev.booksCompleted +
-        1,
-
-      pendingReturns:
-        Math.max(
-          0,
-          prev.pendingReturns - 1
+                  availableCopies:
+                    b.availableCopies +
+                    1
+                }
+              : b
         )
-    }));
+    );
 
-    setActivities(prev => [
-      {
-        id:
-          'act-' +
-          Date.now(),
 
-        title:
-          'Book Returned',
+    setBorrowedBooks(
+      prev =>
+        prev.map(
+          b =>
+            b.id ===
+            borrowRecordId
+              ? {
+                  ...b,
 
-        description:
-          `Successfully returned "${record.bookTitle}" to SIT Central Library circulation desk.`,
+                  status:
+                    'Completed',
 
-        timestamp:
-          'Just now',
+                  progressPercent:
+                    100
+                }
+              : b
+        )
+    );
 
-        type:
-          'return'
-      },
 
-      ...prev
-    ]);
+    setUser(
+      prev => ({
+        ...prev,
+
+        booksCompleted:
+          prev.booksCompleted +
+          1,
+
+        pendingReturns:
+          Math.max(
+            0,
+            prev.pendingReturns -
+              1
+          )
+      })
+    );
+
+
+    setActivities(
+      prev => [
+        {
+          id:
+            'act-' +
+            Date.now(),
+
+          title:
+            'Book Returned',
+
+          description:
+            `Successfully returned "${record.bookTitle}" to SIT Central Library circulation desk.`,
+
+          timestamp:
+            'Just now',
+
+          type:
+            'return'
+        },
+
+        ...prev
+      ]
+    );
+
 
     addToast(
       'Book Returned',
@@ -1396,40 +2019,56 @@ export const LibraryProvider: React.FC<{
     );
   };
 
-  /*
-   * WISHLIST
-   */
+
+  /* =======================================================
+     WISHLIST
+     ======================================================= */
+
   const toggleWishlist = (
     bookId: string
   ) => {
+
     const exists =
       wishlist.includes(
         bookId
       );
 
+
     const targetBook =
       books.find(
-        b => b.id === bookId
+        b =>
+          b.id ===
+          bookId
       );
 
+
     if (exists) {
-      setWishlist(prev =>
-        prev.filter(
-          id =>
-            id !== bookId
-        )
+
+      setWishlist(
+        prev =>
+          prev.filter(
+            id =>
+              id !==
+              bookId
+          )
       );
+
 
       addToast(
         'Removed from Wishlist',
         `"${targetBook?.title || 'Book'}" removed from your reading list.`,
         'info'
       );
+
     } else {
-      setWishlist(prev => [
-        ...prev,
-        bookId
-      ]);
+
+      setWishlist(
+        prev => [
+          ...prev,
+          bookId
+        ]
+      );
+
 
       addToast(
         'Added to Wishlist',
@@ -1439,57 +2078,76 @@ export const LibraryProvider: React.FC<{
     }
   };
 
-  /*
-   * READING PROGRESS
-   */
+
+  /* =======================================================
+     READING PROGRESS
+     ======================================================= */
+
   const updateReadingProgress = (
     borrowRecordId: string,
     percent: number
   ) => {
+
     const clamped =
       Math.min(
         100,
         Math.max(
           0,
-          Math.round(percent)
+          Math.round(
+            percent
+          )
         )
       );
 
-    setBorrowedBooks(prev =>
-      prev.map(b => {
-        if (
-          b.id ===
-          borrowRecordId
-        ) {
-          const pagesRead =
-            Math.round(
-              (clamped / 100) *
-                b.totalPages
-            );
 
-          const newStatus =
-            clamped === 100
-              ? 'Completed'
-              : clamped > 0
-              ? 'Currently Reading'
-              : 'Borrowed';
+    setBorrowedBooks(
+      prev =>
+        prev.map(
+          b => {
 
-          return {
-            ...b,
+            if (
+              b.id !==
+              borrowRecordId
+            ) {
 
-            progressPercent:
-              clamped,
+              return b;
+            }
 
-            pagesRead,
 
-            status:
-              newStatus
-          };
-        }
+            const pagesRead =
+              Math.round(
+                (clamped /
+                  100) *
+                  b.totalPages
+              );
 
-        return b;
-      })
+
+            const newStatus =
+              clamped ===
+              100
+                ? 'Completed'
+                : clamped >
+                    0
+                ? 'Currently Reading'
+                : 'Borrowed';
+
+
+            return {
+
+              ...b,
+
+              progressPercent:
+                clamped,
+
+              pagesRead,
+
+              status:
+                newStatus
+            };
+          }
+        )
     );
+
 
     addToast(
       'Reading Progress Saved',
@@ -1498,9 +2156,11 @@ export const LibraryProvider: React.FC<{
     );
   };
 
-  /*
-   * SEAT RESERVATION
-   */
+
+  /* =======================================================
+     SEAT RESERVATION
+     ======================================================= */
+
   const reserveSeat = (
     floor: number,
     seatNumber: string,
@@ -1508,6 +2168,7 @@ export const LibraryProvider: React.FC<{
     timeSlot: string,
     section: string
   ): boolean => {
+
     const exists =
       reservations.some(
         r =>
@@ -1515,14 +2176,17 @@ export const LibraryProvider: React.FC<{
             floor &&
           r.seatNumber ===
             seatNumber &&
-          r.date === date &&
+          r.date ===
+            date &&
           r.timeSlot ===
             timeSlot &&
           r.status !==
             'Cancelled'
       );
 
+
     if (exists) {
+
       addToast(
         'Seat Occupied',
         `Seat ${seatNumber} is already reserved for this slot. Please pick another.`,
@@ -1532,7 +2196,10 @@ export const LibraryProvider: React.FC<{
       return false;
     }
 
-    const newRes: SeatReservation = {
+
+    const newRes:
+      SeatReservation = {
+
       id:
         'res-' +
         Date.now(),
@@ -1554,6 +2221,7 @@ export const LibraryProvider: React.FC<{
         'Just now'
     };
 
+
     setReservations(
       prev => [
         newRes,
@@ -1561,27 +2229,31 @@ export const LibraryProvider: React.FC<{
       ]
     );
 
-    setActivities(prev => [
-      {
-        id:
-          'act-' +
-          Date.now(),
 
-        title:
-          'Seat Reserved',
+    setActivities(
+      prev => [
+        {
+          id:
+            'act-' +
+            Date.now(),
 
-        description:
-          `Reserved Seat ${seatNumber} (Floor ${floor}) for ${date}, ${timeSlot}`,
+          title:
+            'Seat Reserved',
 
-        timestamp:
-          'Just now',
+          description:
+            `Reserved Seat ${seatNumber} (Floor ${floor}) for ${date}, ${timeSlot}`,
 
-        type:
-          'seat'
-      },
+          timestamp:
+            'Just now',
 
-      ...prev
-    ]);
+          type:
+            'seat'
+        },
+
+        ...prev
+      ]
+    );
+
 
     setNotifications(
       prev => [
@@ -1602,7 +2274,8 @@ export const LibraryProvider: React.FC<{
           timestamp:
             'Just now',
 
-          read: false,
+          read:
+            false,
 
           linkPage:
             'seat-reservation'
@@ -1612,18 +2285,22 @@ export const LibraryProvider: React.FC<{
       ]
     );
 
+
     addToast(
       'Seat Reserved Successfully',
       `Seat ${seatNumber} on Floor ${floor} confirmed for ${timeSlot} ✓`,
       'success'
     );
 
+
     return true;
   };
+
 
   const cancelSeatReservation = (
     resId: string
   ) => {
+
     const target =
       reservations.find(
         r =>
@@ -1631,20 +2308,28 @@ export const LibraryProvider: React.FC<{
           resId
       );
 
-    if (!target) return;
 
-    setReservations(prev =>
-      prev.map(r =>
-        r.id ===
-        resId
-          ? {
-              ...r,
-              status:
-                'Cancelled'
-            }
-          : r
-      )
+    if (!target) {
+      return;
+    }
+
+
+    setReservations(
+      prev =>
+        prev.map(
+          r =>
+            r.id ===
+            resId
+              ? {
+                  ...r,
+
+                  status:
+                    'Cancelled'
+                }
+              : r
+        )
     );
+
 
     addToast(
       'Reservation Cancelled',
@@ -1653,38 +2338,48 @@ export const LibraryProvider: React.FC<{
     );
   };
 
-  /*
-   * BOOK CONDITION
-   */
+
+  /* =======================================================
+     BOOK CONDITION
+     ======================================================= */
+
   const updateBookCondition = (
     bookId: string,
     condition: BookCondition,
     notes?: string
   ) => {
+
     const today =
       new Date()
         .toISOString()
-        .split('T')[0];
+        .split(
+          'T'
+        )[0];
 
-    setBooks(prev =>
-      prev.map(b =>
-        b.id ===
-        bookId
-          ? {
-              ...b,
 
-              condition,
+    setBooks(
+      prev =>
+        prev.map(
+          b =>
+            b.id ===
+            bookId
+              ? {
 
-              conditionNotes:
-                notes ||
-                b.conditionNotes,
+                  ...b,
 
-              lastCheckedDate:
-                today
-            }
-          : b
-      )
+                  condition,
+
+                  conditionNotes:
+                    notes ||
+                    b.conditionNotes,
+
+                  lastCheckedDate:
+                    today
+                }
+              : b
+        )
     );
+
 
     addToast(
       'Condition Updated',
@@ -1693,9 +2388,11 @@ export const LibraryProvider: React.FC<{
     );
   };
 
-  /*
-   * BOOK EXCHANGE
-   */
+
+  /* =======================================================
+     BOOK EXCHANGE
+     ======================================================= */
+
   const addExchangeListing = (
     item: {
       title: string;
@@ -1705,47 +2402,52 @@ export const LibraryProvider: React.FC<{
       description: string;
     }
   ) => {
+
     const newItem:
       BookExchangeItem = {
-        id:
-          'ex-' +
-          Date.now(),
 
-        title:
-          item.title,
+      id:
+        'ex-' +
+        Date.now(),
 
-        author:
-          item.author,
+      title:
+        item.title,
 
-        category:
-          item.category,
+      author:
+        item.author,
 
-        condition:
-          item.condition,
+      category:
+        item.category,
 
-        description:
-          item.description,
+      condition:
+        item.condition,
 
-        ownerName:
-          user.name,
+      description:
+        item.description,
 
-        ownerId:
-          user.studentId,
+      ownerName:
+        user.name,
 
-        department:
-          user.department,
+      ownerId:
+        user.studentId,
 
-        year:
-          user.year,
+      department:
+        user.department,
 
-        status:
-          'Available',
+      year:
+        user.year,
 
-        postedDate:
-          new Date()
-            .toISOString()
-            .split('T')[0]
-      };
+      status:
+        'Available',
+
+      postedDate:
+        new Date()
+          .toISOString()
+          .split(
+            'T'
+          )[0]
+    };
+
 
     setExchangeItems(
       prev => [
@@ -1754,27 +2456,31 @@ export const LibraryProvider: React.FC<{
       ]
     );
 
-    setActivities(prev => [
-      {
-        id:
-          'act-' +
-          Date.now(),
 
-        title:
-          'Exchange Listing Posted',
+    setActivities(
+      prev => [
+        {
+          id:
+            'act-' +
+            Date.now(),
 
-        description:
-          `Listed "${item.title}" on the Student Book Exchange Corner.`,
+          title:
+            'Exchange Listing Posted',
 
-        timestamp:
-          'Just now',
+          description:
+            `Listed "${item.title}" on the Student Book Exchange Corner.`,
 
-        type:
-          'exchange'
-      },
+          timestamp:
+            'Just now',
 
-      ...prev
-    ]);
+          type:
+            'exchange'
+        },
+
+        ...prev
+      ]
+    );
+
 
     addToast(
       'Listing Published',
@@ -1783,9 +2489,11 @@ export const LibraryProvider: React.FC<{
     );
   };
 
+
   const requestExchange = (
     itemId: string
   ) => {
+
     const target =
       exchangeItems.find(
         e =>
@@ -1793,20 +2501,28 @@ export const LibraryProvider: React.FC<{
           itemId
       );
 
-    if (!target) return;
 
-    setExchangeItems(prev =>
-      prev.map(e =>
-        e.id ===
-        itemId
-          ? {
-              ...e,
-              status:
-                'Requested'
-            }
-          : e
-      )
+    if (!target) {
+      return;
+    }
+
+
+    setExchangeItems(
+      prev =>
+        prev.map(
+          e =>
+            e.id ===
+            itemId
+              ? {
+                  ...e,
+
+                  status:
+                    'Requested'
+                }
+              : e
+        )
     );
+
 
     addToast(
       'Exchange Request Sent',
@@ -1815,12 +2531,15 @@ export const LibraryProvider: React.FC<{
     );
   };
 
-  /*
-   * COMPANION
-   */
+
+  /* =======================================================
+     COMPANION
+     ======================================================= */
+
   const connectCompanion = (
     companionId: string
   ) => {
+
     const target =
       companions.find(
         c =>
@@ -1828,21 +2547,29 @@ export const LibraryProvider: React.FC<{
           companionId
       );
 
-    if (!target) return;
 
-    setCompanions(prev =>
-      prev.map(c =>
-        c.id ===
-        companionId
-          ? {
-              ...c,
+    if (!target) {
+      return;
+    }
 
-              connectionStatus:
-                'connected'
-            }
-          : c
-      )
+
+    setCompanions(
+      prev =>
+        prev.map(
+          c =>
+            c.id ===
+            companionId
+              ? {
+
+                  ...c,
+
+                  connectionStatus:
+                    'connected'
+                }
+              : c
+        )
     );
+
 
     addToast(
       'Study Connection Established',
@@ -1851,29 +2578,42 @@ export const LibraryProvider: React.FC<{
     );
   };
 
-  /*
-   * NOTIFICATIONS
-   */
+
+  /* =======================================================
+     NOTIFICATIONS
+     ======================================================= */
+
   const markNotificationRead = (
     notifId: string
   ) => {
-    setNotifications(prev =>
-      prev.map(n =>
-        n.id ===
-        notifId
-          ? {
-              ...n,
-              read: true
-            }
-          : n
-      )
+
+    setNotifications(
+      prev =>
+        prev.map(
+          n =>
+            n.id ===
+            notifId
+              ? {
+
+                  ...n,
+
+                  read:
+                    true
+                }
+              : n
+        )
     );
 
+
     if (user.id) {
+
       void supabase
-        .from('notifications')
+        .from(
+          'notifications'
+        )
         .update({
-          read: true
+          read:
+            true
         })
         .eq(
           'id',
@@ -1886,20 +2626,32 @@ export const LibraryProvider: React.FC<{
     }
   };
 
+
   const markAllNotificationsRead =
     () => {
-      setNotifications(prev =>
-        prev.map(n => ({
-          ...n,
-          read: true
-        }))
+
+      setNotifications(
+        prev =>
+          prev.map(
+            n => ({
+              ...n,
+
+              read:
+                true
+            })
+          )
       );
 
+
       if (user.id) {
+
         void supabase
-          .from('notifications')
+          .from(
+            'notifications'
+          )
           .update({
-            read: true
+            read:
+              true
           })
           .eq(
             'user_id',
@@ -1911,6 +2663,7 @@ export const LibraryProvider: React.FC<{
           );
       }
 
+
       addToast(
         'All Read',
         'Marked all notifications as read.',
@@ -1918,16 +2671,23 @@ export const LibraryProvider: React.FC<{
       );
     };
 
-  /*
-   * USER PROFILE
-   */
+
+  /* =======================================================
+     USER PROFILE
+     ======================================================= */
+
   const updateUserProfile = (
     updated: Partial<User>
   ) => {
-    setUser(prev => ({
-      ...prev,
-      ...updated
-    }));
+
+    setUser(
+      prev => ({
+        ...prev,
+
+        ...updated
+      })
+    );
+
 
     addToast(
       'Profile Updated',
@@ -1936,9 +2696,28 @@ export const LibraryProvider: React.FC<{
     );
   };
 
-  /*
-   * LOGIN
-   */
+
+  /* =======================================================
+     LOGIN
+     
+     IMPORTANT FIX:
+     
+     Your database does NOT contain:
+     
+       profiles.approval_status
+     
+     Therefore this query only requests columns that
+     actually exist in your current profiles table.
+     
+     We also do NOT request:
+     
+       profiles.email
+     
+     because Supabase Auth already provides:
+     
+       data.user.email
+     ======================================================= */
+
   const login = async (
     email: string,
     password: string,
@@ -1947,26 +2726,37 @@ export const LibraryProvider: React.FC<{
       | 'AUTHOR'
       | 'ADMIN'
   ): Promise<boolean> => {
-    setAuthError('');
-    requestedPortalRef.current = expectedRole;
+
+    setAuthError(
+      ''
+    );
+
+
+    requestedPortalRef.current =
+      expectedRole;
+
 
     console.log(
       'LOGIN START'
     );
+
 
     console.log(
       'Email:',
       email
     );
 
+
     console.log(
       'Expected role:',
       expectedRole
     );
 
-    /*
-     * SUPABASE AUTH
-     */
+
+    /* -------------------------------------------------------
+       SUPABASE AUTHENTICATION
+       ------------------------------------------------------- */
+
     const {
       data,
       error
@@ -1978,13 +2768,19 @@ export const LibraryProvider: React.FC<{
         }
       );
 
+
     if (error) {
+
       console.error(
         'LOGIN AUTH ERROR:',
         error
       );
 
-      setAuthError(error.message);
+
+      setAuthError(
+        error.message
+      );
+
 
       addToast(
         'Login Failed',
@@ -1992,16 +2788,21 @@ export const LibraryProvider: React.FC<{
         'error'
       );
 
+
       return false;
     }
 
-    /*
-     * NO USER
-     */
+
+    /* -------------------------------------------------------
+       CHECK USER
+       ------------------------------------------------------- */
+
     if (!data.user) {
+
       console.error(
         'LOGIN ERROR: Supabase returned no user.'
       );
+
 
       addToast(
         'Login Failed',
@@ -2009,43 +2810,62 @@ export const LibraryProvider: React.FC<{
         'error'
       );
 
+
       return false;
     }
+
 
     console.log(
       'AUTHENTICATION SUCCESS:',
       data.user.id
     );
 
-    /*
-     * LOAD PROFILE
-     */
+
+    /* -------------------------------------------------------
+       LOAD PROFILE
+       
+       IMPORTANT:
+       approval_status has been removed.
+       email has been removed.
+       ------------------------------------------------------- */
+
     const {
       data: profile,
       error: profileError
-    } = await supabase
-      .from('profiles')
-      .select(
-        'full_name, role, student_id, department, year, email, approval_status'
-      )
-      .eq(
-        'id',
-        data.user.id
-      )
-      .maybeSingle();
+    } =
+      await supabase
+        .from(
+          'profiles'
+        )
+        .select(
+          'full_name, role, student_id, department, year'
+        )
+        .eq(
+          'id',
+          data.user.id
+        )
+        .maybeSingle();
 
-    /*
-     * PROFILE ERROR
-     */
+
+    /* -------------------------------------------------------
+       PROFILE ERROR
+       ------------------------------------------------------- */
+
     if (profileError) {
+
       console.error(
         'PROFILE ERROR:',
         profileError
       );
 
+
       await supabase.auth.signOut();
 
-      setAuthError(profileError.message);
+
+      setAuthError(
+        profileError.message
+      );
+
 
       addToast(
         'Profile Error',
@@ -2053,20 +2873,29 @@ export const LibraryProvider: React.FC<{
         'error'
       );
 
+
       return false;
     }
 
-    /*
-     * PROFILE DOES NOT EXIST
-     */
+
+    /* -------------------------------------------------------
+       PROFILE DOES NOT EXIST
+       ------------------------------------------------------- */
+
     if (!profile) {
+
       console.error(
         'PROFILE ERROR: No profile found.'
       );
 
+
       await supabase.auth.signOut();
 
-      setAuthError('No profile was found for this account.');
+
+      setAuthError(
+        'No profile was found for this account.'
+      );
+
 
       addToast(
         'Profile Error',
@@ -2074,38 +2903,32 @@ export const LibraryProvider: React.FC<{
         'error'
       );
 
+
       return false;
     }
+
 
     console.log(
       'PROFILE FOUND:',
       profile
     );
 
-    // Student accounts must be approved by an administrator before they
-    // can enter the student portal. Check this here before rendering it,
-    // preventing the brief dashboard flash followed by a logout.
+
+    /* -------------------------------------------------------
+       ROLE CHECK
+       
+       ADMIN is allowed to enter the selected portal.
+       A normal STUDENT cannot enter ADMIN/AUTHOR.
+       A normal AUTHOR cannot enter ADMIN/STUDENT.
+       ------------------------------------------------------- */
+
     if (
-      profile.role === 'STUDENT' &&
-      expectedRole === 'STUDENT' &&
-      profile.approval_status !== 'APPROVED'
+      profile.role !==
+        expectedRole &&
+      profile.role !==
+        'ADMIN'
     ) {
-      await supabase.auth.signOut();
 
-      const message =
-        profile.approval_status === 'REJECTED'
-          ? 'Your student registration was rejected by the administrator.'
-          : 'Your student registration is waiting for administrator approval.';
-
-      setAuthError(message);
-      addToast('Student Approval Required', message, 'warning');
-      return false;
-    }
-
-    /*
-     * ROLE CHECK
-     */
-    if (profile.role !== expectedRole && profile.role !== 'ADMIN') {
       console.error(
         'ROLE MISMATCH:',
         'Expected:',
@@ -2114,10 +2937,18 @@ export const LibraryProvider: React.FC<{
         profile.role
       );
 
+
       await supabase.auth.signOut();
 
-      const message = `This account is registered as ${profile.role}, not ${expectedRole}.`;
-      setAuthError(message);
+
+      const message =
+        `This account is registered as ${profile.role}, not ${expectedRole}.`;
+
+
+      setAuthError(
+        message
+      );
+
 
       addToast(
         'Wrong Portal',
@@ -2125,53 +2956,94 @@ export const LibraryProvider: React.FC<{
         'error'
       );
 
+
       return false;
     }
 
+
+    /* -------------------------------------------------------
+       LOGIN SUCCESS
+       ------------------------------------------------------- */
+
+    setUser(
+      prev => ({
+
+        ...prev,
+
+        id:
+          data.user.id,
+
+        name:
+          profile.full_name ||
+          prev.name,
+
+        email:
+          data.user.email ||
+          email,
+
+        studentId:
+          profile.student_id ||
+          prev.studentId,
+
+        department:
+          profile.department ||
+          prev.department,
+
+        year:
+          profile.year ||
+          prev.year
+      })
+    );
+
+
+    setUserRole(
+      profile.role as
+        | 'STUDENT'
+        | 'AUTHOR'
+        | 'ADMIN'
+    );
+
+
     /*
-     * LOGIN SUCCESS
+     * The portal is the portal selected by the user.
      */
-    setUser(prev => ({
-      ...prev,
 
-      id:
-        data.user.id,
+    setActivePortal(
+      expectedRole
+    );
 
-      name:
-        profile.full_name ||
-        prev.name,
 
-      email:
-        data.user.email ||
-        email,
+    setIsLoggedIn(
+      true
+    );
 
-      studentId:
-        profile.student_id ||
-        prev.studentId,
-
-      department:
-        profile.department ||
-        prev.department,
-
-      year:
-        profile.year ||
-        prev.year
-    }));
-
-    setUserRole(profile.role as 'STUDENT' | 'AUTHOR' | 'ADMIN');
-    setActivePortal(expectedRole);
-
-    setIsLoggedIn(true);
 
     setCurrentPageState(
       'dashboard'
     );
 
-    if (expectedRole === 'STUDENT' || profile.role === 'STUDENT') {
-      void loadStudentData(data.user.id);
+
+    /* -------------------------------------------------------
+       LOAD STUDENT DATA
+       ------------------------------------------------------- */
+
+    if (
+      expectedRole ===
+        'STUDENT' ||
+      profile.role ===
+        'STUDENT'
+    ) {
+
+      void loadStudentData(
+        data.user.id
+      );
     }
 
-    setAuthError('');
+
+    setAuthError(
+      ''
+    );
+
 
     addToast(
       'Welcome Back',
@@ -2179,50 +3051,83 @@ export const LibraryProvider: React.FC<{
       'success'
     );
 
+
     console.log(
       'LOGIN COMPLETE - DASHBOARD'
     );
 
+
     return true;
   };
 
-  /*
-   * LOGOUT
-   */
-  const logout = async () => {
-    const {
-      error
-    } =
-      await supabase.auth.signOut();
 
-    if (error) {
-      console.error(
-        'LOGOUT ERROR:',
+  /* =======================================================
+     LOGOUT
+     ======================================================= */
+
+  const logout =
+    async () => {
+
+      const {
         error
+      } =
+        await supabase.auth.signOut();
+
+
+      if (error) {
+
+        console.error(
+          'LOGOUT ERROR:',
+          error
+        );
+      }
+
+
+      setIsLoggedIn(
+        false
       );
-    }
 
-    setIsLoggedIn(false);
-    setUserRole(null);
-    setActivePortal(null);
-    requestedPortalRef.current = null;
-    setCurrentPageState(
-      'dashboard'
-    );
 
-    addToast(
-      'Logged Out',
-      'You have been safely signed out of the library.',
-      'info'
-    );
-  };
+      setUserRole(
+        null
+      );
 
-  /*
-   * PROVIDER
-   */
+
+      setActivePortal(
+        null
+      );
+
+
+      requestedPortalRef.current =
+        null;
+
+
+      setCurrentPageState(
+        'dashboard'
+      );
+
+
+      setAuthError(
+        ''
+      );
+
+
+      addToast(
+        'Logged Out',
+        'You have been safely signed out of the library.',
+        'info'
+      );
+    };
+
+
+  /* =======================================================
+     PROVIDER
+     ======================================================= */
+
   return (
     <LibraryContext.Provider
       value={{
+
         books,
 
         user,
@@ -2324,22 +3229,34 @@ export const LibraryProvider: React.FC<{
         setTheme
       }}
     >
+
       {children}
+
     </LibraryContext.Provider>
   );
 };
 
-export const useLibrary = () => {
-  const context =
-    useContext(
-      LibraryContext
-    );
 
-  if (!context) {
-    throw new Error(
-      'useLibrary must be used within a LibraryProvider'
-    );
-  }
+/* =========================================================
+   USE LIBRARY HOOK
+   ========================================================= */
 
-  return context;
-};
+export const useLibrary =
+  () => {
+
+    const context =
+      useContext(
+        LibraryContext
+      );
+
+
+    if (!context) {
+
+      throw new Error(
+        'useLibrary must be used within a LibraryProvider'
+      );
+    }
+
+
+    return context;
+  };
