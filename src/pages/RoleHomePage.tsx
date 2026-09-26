@@ -12,6 +12,7 @@ export const RoleHomePage: React.FC = () => {
   const { user, userRole, logout, addToast } = useLibrary();
   const [books, setBooks] = useState<AuthorBook[]>([]);
   const [loading, setLoading] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
   const [showAdd, setShowAdd] = useState(false);
   const [form, setForm] = useState({ title: '', isbn: '', category: 'Computer Science', description: '', publicationYear: '', publisher: '', totalCopies: '1' });
   const [pdfFile, setPdfFile] = useState<File | null>(null);
@@ -56,23 +57,38 @@ export const RoleHomePage: React.FC = () => {
 
   const publish = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (submitting) return;
+    setSubmitting(true);
     const total = Math.max(1, Number(form.totalCopies) || 1);
-    if (!pdfFile || pdfFile.type !== 'application/pdf') { addToast('PDF Required', 'Upload the book PDF before submitting.', 'warning'); return; }
+    if (!form.title.trim()) { addToast('Title Required', 'Enter the book title before submitting.', 'warning'); setSubmitting(false); return; }
+    if (!pdfFile || pdfFile.type !== 'application/pdf') { addToast('PDF Required', 'Upload the book PDF before submitting.', 'warning'); setSubmitting(false); return; }
     const filePath = user.id + '/' + crypto.randomUUID() + '.pdf';
     const { error: uploadError } = await supabase.storage.from('author-book-pdfs').upload(filePath, pdfFile, { contentType: 'application/pdf', upsert: false });
-    if (uploadError) { addToast('PDF Upload Failed', uploadError.message, 'error'); return; }
+    if (uploadError) { addToast('PDF Upload Failed', uploadError.message, 'error'); setSubmitting(false); return; }
     const { error } = await supabase.from('books').insert({
       title: form.title.trim(), author_name: user.name || 'Author', author_id: user.id,
       isbn: form.isbn.trim() || null, category: form.category, description: form.description.trim(),
       publication_year: form.publicationYear ? Number(form.publicationYear) : null,
       publisher: form.publisher.trim(), total_copies: total, available_copies: total, condition: 'Good', approval_status: 'PENDING', pdf_path: filePath, ai_status: 'PENDING'
     });
-    if (error) { addToast('Book Could Not Be Added', error.message, 'error'); return; }
-    addToast('Book Published', 'Your book is now in the library catalogue.', 'success');
+    if (error) {
+      // Clean up the uploaded PDF if the database insert fails.
+      await supabase.storage.from('author-book-pdfs').remove([filePath]);
+      addToast('Submission Failed', error.message, 'error');
+      setSubmitting(false);
+      return;
+    }
+
+    addToast(
+      'Submitted for Review',
+      'Your book and PDF were submitted successfully. The administrator will review it before it appears to students.',
+      'success'
+    );
     setShowAdd(false);
     setForm({ title:'', isbn:'', category:'Computer Science', description:'', publicationYear:'', publisher:'', totalCopies:'1' });
     setPdfFile(null);
     await loadAuthorData();
+    setSubmitting(false);
   };
 
   const totalReads = books.reduce((n, b) => n + b.read_count, 0);
@@ -115,7 +131,7 @@ export const RoleHomePage: React.FC = () => {
             <span className="block text-[11px] text-slate-500 mt-1">The PDF is private. Students will only see the approved AI-generated summary.</span>
           </label>
           <label className="block text-xs font-semibold mt-4">Description<textarea value={form.description} onChange={e=>setForm({...form,description:e.target.value})} rows={4} className="mt-1 w-full border rounded-lg p-2.5 text-sm" /></label>
-          <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={()=>setShowAdd(false)} className="px-4 py-2 border rounded-lg text-xs">Cancel</button><button type="submit" className="px-4 py-2 bg-[#4C1D95] text-white rounded-lg text-xs font-semibold">Submit for Approval</button></div>
+          <div className="mt-5 flex justify-end gap-2"><button type="button" onClick={()=>setShowAdd(false)} className="px-4 py-2 border rounded-lg text-xs">Cancel</button><button type="submit" disabled={submitting} className="px-4 py-2 bg-[#4C1D95] disabled:opacity-60 text-white rounded-lg text-xs font-semibold">{submitting ? 'Submitting...' : 'Submit for Approval'}</button></div>
         </form></div>}
       </div>
     </div>
