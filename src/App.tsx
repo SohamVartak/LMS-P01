@@ -36,7 +36,7 @@ import { AdminBookManagementPage } from './pages/AdminBookManagementPage';
 import { AdminCirculationPage } from './pages/AdminCirculationPage';
 
 const AppContent: React.FC = () => {
-  const { isLoggedIn, authLoading, currentPage, theme, userRole } = useLibrary();
+  const { isLoggedIn, authLoading, currentPage, theme, userRole, activePortal } = useLibrary();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [adminPage, setAdminPage] = useState<'books' | 'circulation'>('books');
 
@@ -53,13 +53,13 @@ const AppContent: React.FC = () => {
     );
   }
 
-  if (userRole === 'ADMIN') {
+  if (userRole === 'ADMIN' && activePortal === 'ADMIN') {
     return adminPage === 'books'
       ? <AdminBookManagementPage onOpenCirculation={() => setAdminPage('circulation')} />
       : <AdminCirculationPage onBack={() => setAdminPage('books')} />;
   }
 
-  if (userRole === 'AUTHOR') {
+  if (activePortal === 'AUTHOR') {
     return <RoleHomePage />;
   }
 
