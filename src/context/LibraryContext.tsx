@@ -47,6 +47,7 @@ interface LibraryContextType {
   isLoggedIn: boolean;
   authLoading: boolean;
   userRole: 'STUDENT' | 'AUTHOR' | 'ADMIN' | null;
+  authError: string;
   theme: BackgroundTheme;
   setTheme: (theme: BackgroundTheme) => void;
 
@@ -209,6 +210,8 @@ export const LibraryProvider: React.FC<{
   const [userRole, setUserRole] = useState<
     'STUDENT' | 'AUTHOR' | 'ADMIN' | null
   >(null);
+
+  const [authError, setAuthError] = useState('');
 
   const [theme, setThemeState] =
     useState<BackgroundTheme>('amethyst');
@@ -2046,6 +2049,8 @@ export const LibraryProvider: React.FC<{
       | 'AUTHOR'
       | 'ADMIN'
   ): Promise<boolean> => {
+    setAuthError('');
+
     console.log(
       'LOGIN START'
     );
@@ -2079,6 +2084,8 @@ export const LibraryProvider: React.FC<{
         'LOGIN AUTH ERROR:',
         error
       );
+
+      setAuthError(error.message);
 
       addToast(
         'Login Failed',
@@ -2139,6 +2146,8 @@ export const LibraryProvider: React.FC<{
 
       await supabase.auth.signOut();
 
+      setAuthError(profileError.message);
+
       addToast(
         'Profile Error',
         profileError.message,
@@ -2157,6 +2166,8 @@ export const LibraryProvider: React.FC<{
       );
 
       await supabase.auth.signOut();
+
+      setAuthError('No profile was found for this account.');
 
       addToast(
         'Profile Error',
@@ -2189,9 +2200,12 @@ export const LibraryProvider: React.FC<{
 
       await supabase.auth.signOut();
 
+      const message = `This account is registered as ${profile.role}, not ${expectedRole}.`;
+      setAuthError(message);
+
       addToast(
         'Wrong Portal',
-        `This account is registered as ${profile.role}, not ${expectedRole}.`,
+        message,
         'error'
       );
 
@@ -2249,6 +2263,8 @@ export const LibraryProvider: React.FC<{
         data.user.id
       );
     }
+
+    setAuthError('');
 
     addToast(
       'Welcome Back',
@@ -2331,6 +2347,8 @@ export const LibraryProvider: React.FC<{
         authLoading,
 
         userRole,
+
+        authError,
 
         setCurrentPage,
 
