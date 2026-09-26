@@ -1672,206 +1672,67 @@ export const LibraryProvider:
      BORROW BOOK
      ======================================================= */
 
-  const borrowBook = (
+  const borrowBook = async (
     bookId: string
-  ): boolean => {
+  ): Promise<boolean> => {
+    if (userRole !== 'STUDENT' || !user.id) return false;
 
-    const targetBook =
-      books.find(
-        b =>
-          b.id ===
-          bookId
-      );
+    const targetBook = books.find(b => b.id === bookId);
+    if (!targetBook) return false;
 
-
-    if (!targetBook) {
+    const alreadyBorrowed = borrowedBooks.some(
+      b => b.bookId === bookId &&
+        ['Currently Reading', 'Borrowed', 'Reserved'].includes(b.status)
+    );
+    if (alreadyBorrowed) {
+      addToast('Already Borrowed', `You currently have an active issue for "${targetBook.title}".`, 'warning');
       return false;
     }
 
-
-    const alreadyBorrowed =
-      borrowedBooks.some(
-        b =>
-          b.bookId ===
-            bookId &&
-          (
-            b.status ===
-              'Currently Reading' ||
-            b.status ===
-              'Borrowed'
-          )
-      );
-
-
-    if (
-      alreadyBorrowed
-    ) {
-
-      addToast(
-        'Already Borrowed',
-        `You currently hold an active issue for "${targetBook.title}".`,
-        'warning'
-      );
-
+    if (targetBook.availableCopies <= 0) {
+      addToast('No Copies Available', 'All physical copies are checked out. You can reserve this title.', 'warning');
       return false;
     }
 
+    const today = new Date();
+    const due = new Date(today);
+    due.setDate(due.getDate() + 14);
+    const todayStr = today.toISOString().split('T')[0];
+    const dueDateStr = due.toISOString().split('T')[0];
 
-    if (
-      targetBook.availableCopies <=
-      0
-    ) {
-
-      addToast(
-        'No Copies Available',
-        'All physical copies are checked out. You can reserve this title.',
-        'warning'
-      );
-
-      return false;
-    }
-
-
-    setBooks(
-      prev =>
-        prev.map(
-          b =>
-            b.id ===
-            bookId
-              ? {
-                  ...b,
-
-                  availableCopies:
-                    b.availableCopies -
-                    1
-                }
-              : b
-        )
-    );
-
-
-    const due =
-      new Date();
-
-
-    due.setDate(
-      due.getDate() +
-        14
-    );
-
-
-    const dueDateStr =
-      due.toISOString()
-        .split(
-          'T'
-        )[0];
-
-
-    const todayStr =
-      new Date()
-        .toISOString()
-        .split(
-          'T'
-        )[0];
-
-
-    const newRecord:
-      BorrowRecord = {
-
-      id:
-        'br-' +
-        Date.now(),
-
-      bookId:
-        targetBook.id,
-
-      bookTitle:
-        targetBook.title,
-
-      author:
-        targetBook.author,
-
-      category:
-        targetBook.category,
-
-      coverGradient:
-        targetBook.coverGradient,
-
-      borrowDate:
-        todayStr,
-
-      dueDate:
-        dueDateStr,
-
-      status:
-        'Borrowed',
-
-      progressPercent:
-        0,
-
-      pagesRead:
-        0,
-
-      totalPages:
-        targetBook.pages
-    };
-
-
-    setBorrowedBooks(
-      prev => [
-        newRecord,
-        ...prev
-      ]
-    );
-
-
-    setUser(
-      prev => ({
-        ...prev,
-
-        booksBorrowed:
-          prev.booksBorrowed +
-          1,
-
-        pendingReturns:
-          prev.pendingReturns +
-          1
+    const { data: record, error: insertError } = await supabase
+      .from('borrow_records')
+      .insert({
+        book_id: bookId,
+        student_id: user.id,
+        issue_date: todayStr,
+        due_date: dueDateStr,
+        status: 'BORROWED'
       })
-    );
+      .select('id')
+      .single();
 
+    if (insertError) {
+      addToast('Book Issue Failed', insertError.message, 'error');
+      return false;
+    }
 
-    setActivities(
-      prev => [
-        {
-          id:
-            'act-' +
-            Date.now(),
+    const { error: stockError } = await supabase
+      .from('books')
+      .update({ available_copies: targetBook.availableCopies - 1 })
+      .eq('id', bookId)
+      .gt('available_copies', 0);
 
-          title:
-            'Book Borrowed',
+    if (stockError) {
+      await supabase.from('borrow_records').delete().eq('id', record.id).eq('student_id', user.id);
+      addToast('Book Issue Failed', stockError.message, 'error');
+      return false;
+    }
 
-          description:
-            `Checked out "${targetBook.title}" (Due: ${dueDateStr})`,
+    await loadStudentData(user.id);
+    await refreshBooks();
 
-          timestamp:
-            'Just now',
-
-          type:
-            'borrow'
-        },
-
-        ...prev
-      ]
-    );
-
-
-    addToast(
-      'Book Issued Successfully',
-      `"${targetBook.title}" added to My Books. Due in 14 days.`,
-      'success'
-    );
-
-
+    addToast('Book Issued Successfully', `"${targetBook.title}" added to My Books. Due in 14 days.`, 'success');
     return true;
   };
 
@@ -2061,109 +1922,53 @@ export const LibraryProvider:
      RETURN BOOK
      ======================================================= */
 
-  const returnBook = (
+  const returnBook = async (
     borrowRecordId: string
-  ) => {
+  ): Promise<boolean> => {
+    if (!user.id) return false;
 
-    const record =
-      borrowedBooks.find(
-        b =>
-          b.id ===
-          borrowRecordId
-      );
-
-
-    if (!record) {
-      return;
+    const record = borrowedBooks.find(b => b.id === borrowRecordId);
+    if (!record || !['Borrowed', 'Currently Reading', 'Overdue'].includes(record.status)) {
+      return false;
     }
 
-
-    setBooks(
-      prev =>
-        prev.map(
-          b =>
-            b.id ===
-            record.bookId
-              ? {
-                  ...b,
-
-                  availableCopies:
-                    b.availableCopies +
-                    1
-                }
-              : b
-        )
-    );
-
-
-    setBorrowedBooks(
-      prev =>
-        prev.map(
-          b =>
-            b.id ===
-            borrowRecordId
-              ? {
-                  ...b,
-
-                  status:
-                    'Completed',
-
-                  progressPercent:
-                    100
-                }
-              : b
-        )
-    );
-
-
-    setUser(
-      prev => ({
-        ...prev,
-
-        booksCompleted:
-          prev.booksCompleted +
-          1,
-
-        pendingReturns:
-          Math.max(
-            0,
-            prev.pendingReturns -
-              1
-          )
+    const { error: returnError } = await supabase
+      .from('borrow_records')
+      .update({
+        status: 'RETURNED',
+        return_date: new Date().toISOString().split('T')[0]
       })
-    );
+      .eq('id', borrowRecordId)
+      .eq('student_id', user.id)
+      .in('status', ['BORROWED', 'OVERDUE']);
 
+    if (returnError) {
+      addToast('Return Failed', returnError.message, 'error');
+      return false;
+    }
 
-    setActivities(
-      prev => [
-        {
-          id:
-            'act-' +
-            Date.now(),
+    const targetBook = books.find(b => b.id === record.bookId);
+    if (targetBook) {
+      const { error: stockError } = await supabase
+        .from('books')
+        .update({
+          available_copies: Math.min(
+            targetBook.totalCopies,
+            targetBook.availableCopies + 1
+          )
+        })
+        .eq('id', record.bookId);
 
-          title:
-            'Book Returned',
+      if (stockError) {
+        addToast('Return Recorded', 'The return was recorded, but inventory could not be updated automatically.', 'warning');
+      }
+    }
 
-          description:
-            `Successfully returned "${record.bookTitle}" to SIT Central Library circulation desk.`,
+    await loadStudentData(user.id);
+    await refreshBooks();
 
-          timestamp:
-            'Just now',
-
-          type:
-            'return'
-        },
-
-        ...prev
-      ]
-    );
-
-
-    addToast(
-      'Book Returned',
-      `"${record.bookTitle}" marked as returned. Circulation verified ✓`,
-      'success'
-    );
+    addToast('Book Returned', `"${record.bookTitle}" marked as returned.`, 'success');
+    return true;
   };
 
 
