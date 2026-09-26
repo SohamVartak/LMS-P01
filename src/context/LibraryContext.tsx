@@ -2801,22 +2801,32 @@ export const LibraryProvider:
      USER PROFILE
      ======================================================= */
 
-  const updateUserProfile = (
+  const updateUserProfile = async (
     updated: Partial<User>
   ) => {
+    if (!user.id) return;
 
-    setUser(
-      prev => ({
-        ...prev,
+    const profileUpdate: Record<string, any> = {};
 
-        ...updated
-      })
-    );
+    if (updated.name !== undefined) profileUpdate.full_name = updated.name;
+    if (updated.department !== undefined) profileUpdate.department = updated.department;
+    if (updated.year !== undefined) profileUpdate.year = updated.year;
 
+    const { error } = await supabase
+      .from('profiles')
+      .update(profileUpdate)
+      .eq('id', user.id);
+
+    if (error) {
+      addToast('Profile Update Failed', error.message, 'error');
+      return;
+    }
+
+    setUser(prev => ({ ...prev, ...updated }));
 
     addToast(
       'Profile Updated',
-      'Your student details and reading preferences have been saved ✓',
+      'Your student details have been saved.',
       'success'
     );
   };
