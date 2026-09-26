@@ -8,7 +8,13 @@ export type BookCategory =
   | 'Self-Improvement' 
   | 'Finance & Business' 
   | 'Classic Literature' 
-  | 'Science & Physics';
+  | 'Science & Physics'
+  | 'Computer Engineering'
+  | 'Electrical Engineering'
+  | 'Electronics & Communication'
+  | 'Mechanical Engineering'
+  | 'Civil Engineering'
+  | 'Engineering Mathematics';
 
 export interface Book {
   id: string;
@@ -30,6 +36,7 @@ export interface Book {
   lastCheckedDate: string;
   publicationYear: number;
   publisher: string;
+  coverUrl?: string;
   coverGradient: string; // Tailored cover gradient
   coverAccent: string;
   popularityScore: number; // 1-100
