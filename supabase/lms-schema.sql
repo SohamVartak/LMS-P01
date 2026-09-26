@@ -41,6 +41,38 @@ create table if not exists public.borrow_records (
   created_at timestamptz not null default now()
 );
 
+-- Migration-safe additions for an existing LMS database.
+-- CREATE TABLE IF NOT EXISTS does not add new columns to an already-created books table.
+alter table public.books add column if not exists approval_status text not null default 'APPROVED';
+alter table public.books add column if not exists rejection_reason text;
+alter table public.books add column if not exists pdf_path text;
+alter table public.books add column if not exists ai_summary text;
+alter table public.books add column if not exists ai_status text not null default 'PENDING';
+alter table public.books add column if not exists submitted_at timestamptz not null default now();
+
+do $
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'books_approval_status_check'
+      and conrelid = 'public.books'::regclass
+  ) then
+    alter table public.books
+      add constraint books_approval_status_check
+      check (approval_status in ('PENDING','APPROVED','REJECTED'));
+  end if;
+
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'books_ai_status_check'
+      and conrelid = 'public.books'::regclass
+  ) then
+    alter table public.books
+      add constraint books_ai_status_check
+      check (ai_status in ('PENDING','PROCESSING','COMPLETED','FAILED'));
+  end if;
+end $;
+
 -- Private PDF storage used for author submissions.
 insert into storage.buckets (id, name, public)
 values ('author-book-pdfs', 'author-book-pdfs', false)
