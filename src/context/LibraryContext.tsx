@@ -351,7 +351,7 @@ export const LibraryProvider:
     );
 
 
-  const [shelves] =
+  const [shelves, setShelves] =
     useState<ShelfInfo[]>(
       []
     );
@@ -685,6 +685,33 @@ export const LibraryProvider:
       );
     }
 
+
+    /* -------------------------------------------------------
+       SHELVES
+       ------------------------------------------------------- */
+    const { data: dbShelves, error: shelvesError } = await supabase
+      .from('shelves')
+      .select('id, code, name, category, floor, section, qr_payload, description')
+      .order('floor', { ascending: true })
+      .order('code', { ascending: true });
+
+    if (!shelvesError && dbShelves) {
+      setShelves(dbShelves.map((s: any) => {
+        const shelfBooks = (dbBooks || []).filter((b: any) => b.shelf_id === s.id);
+        return {
+          id: s.id,
+          code: s.code,
+          name: s.name || s.code,
+          category: (s.category || 'Computer Science') as Book['category'],
+          floor: Number(s.floor || 1),
+          section: s.section || '',
+          totalBooks: shelfBooks.reduce((n: number, b: any) => n + Number(b.total_copies || 0), 0),
+          availableBooks: shelfBooks.reduce((n: number, b: any) => n + Number(b.available_copies || 0), 0),
+          qrPayload: s.qr_payload || '',
+          description: s.description || 'Configured library shelf.'
+        };
+      }));
+    }
 
     /* -------------------------------------------------------
        BORROW RECORDS
