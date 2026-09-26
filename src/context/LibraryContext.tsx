@@ -2838,7 +2838,7 @@ export const LibraryProvider:
           'profiles'
         )
         .select(
-          'full_name, role, student_id, department, year'
+          'full_name, role, student_id, department, year, approval_status'
         )
         .eq(
           'id',
@@ -2912,6 +2912,38 @@ export const LibraryProvider:
       'PROFILE FOUND:',
       profile
     );
+
+
+    /* -------------------------------------------------------
+       STUDENT APPROVAL CHECK
+       
+       New student registrations are created as PENDING.
+       They must be approved by an administrator before login.
+       ------------------------------------------------------- */
+
+    if (
+      profile.role === 'STUDENT' &&
+      profile.approval_status !== 'APPROVED'
+    ) {
+      await supabase.auth.signOut();
+
+      const statusMessage =
+        profile.approval_status === 'REJECTED'
+          ? 'Your student registration was rejected. Please contact the library administrator.'
+          : 'Your student registration is awaiting administrator approval.';
+
+      setAuthError(statusMessage);
+
+      addToast(
+        profile.approval_status === 'REJECTED'
+          ? 'Registration Rejected'
+          : 'Approval Required',
+        statusMessage,
+        'warning'
+      );
+
+      return false;
+    }
 
 
     /* -------------------------------------------------------
