@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const BookHealthPage: React.FC = () => {
-  const { books: contextBooks, openBookModal, userRole } = useLibrary();
+  const { books: contextBooks, userRole, updateBookCondition, addToast } = useLibrary();
   const [books, setBooks] = useState<any[]>(contextBooks);
   useEffect(() => {
     const load = async () => {
@@ -23,14 +23,6 @@ export const BookHealthPage: React.FC = () => {
     };
     void load();
   }, []);
-  const updateBookCondition = async (bookId: string, condition: BookCondition, notes?: string) => {
-    if (userRole !== 'ADMIN') return;
-    const { error } = await supabase.rpc('set_book_condition', { p_book_id: bookId, p_condition: condition, p_notes: notes || null });
-    if (error) return;
-    const { data } = await supabase.from('books').select('id,title,author_name,category,shelf_location,condition,condition_notes,condition_set_at,author_id').eq('approval_status','APPROVED').order('title');
-    setBooks(data || []);
-  };
-
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedConditionFilter, setSelectedConditionFilter] = useState<string>('All');
   const [editingBookId, setEditingBookId] = useState<string | null>(null);
@@ -83,7 +75,26 @@ export const BookHealthPage: React.FC = () => {
 
   const handleSaveCondition = async () => {
     if (!editingBookId) return;
-    await updateBookCondition(editingBookId, newCondition, conditionNotes);
+    if (userRole !== 'ADMIN') {
+      addToast('Administrator Access Required', 'Only a library administrator can update book condition.', 'warning');
+      return;
+    }
+
+    const saved = await updateBookCondition(editingBookId, newCondition, conditionNotes);
+    if (!saved) return;
+
+    const { data, error } = await supabase
+      .from('books')
+      .select('id,title,author_name,category,shelf_location,condition,condition_notes,condition_set_at,author_id')
+      .eq('approval_status', 'APPROVED')
+      .order('title');
+
+    if (error) {
+      addToast('Refresh Failed', error.message, 'error');
+      return;
+    }
+
+    setBooks(data || []);
     setEditingBookId(null);
   };
 
