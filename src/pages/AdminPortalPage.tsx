@@ -19,6 +19,7 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
   const [presence, setPresence] = useState<any[]>([]);
   const [borrowed, setBorrowed] = useState<any[]>([]);
   const [seatReservations, setSeatReservations] = useState<any[]>([]);
+  const [librarySeats, setLibrarySeats] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
   const [note, setNote] = useState<Record<string,string>>({});
 
@@ -28,7 +29,7 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
     // Keep auth-user references separate from profile display data. The
     // database stores student_id/user_id as auth.users UUIDs, while the
     // readable name, email and student ID live in public.profiles.
-    const [studentRes, authorRes, bookRes, presenceRes, borrowRes, seatRes] = await Promise.all([
+    const [studentRes, authorRes, bookRes, presenceRes, borrowRes, seatRes, librarySeatRes] = await Promise.all([
       supabase
         .from('profiles')
         .select('id,full_name,email,student_id,department,year,role,approval_status,approval_note,created_at')
@@ -56,7 +57,12 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
         .from('seat_reservations')
         .select('id,user_id,seat_number,floor,section,reservation_date,time_slot,status,created_at')
         .neq('status','CANCELLED')
-        .order('reservation_date',{ascending:true})
+        .order('reservation_date',{ascending:true}),
+      supabase
+        .from('library_seats')
+        .select('id,seat_number,floor,section,seat_type,status')
+        .order('floor')
+        .order('seat_number')
     ]);
 
     if (!studentRes.error) setStudents(studentRes.data || []);
@@ -86,6 +92,9 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
     }
     if (!seatRes.error) {
       setSeatReservations(seatRes.data || []);
+    }
+    if (!librarySeatRes.error) {
+      setLibrarySeats(librarySeatRes.data || []);
     }
 
     setLoading(false);
@@ -209,8 +218,8 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
 
         {section === 'library' && (
           <section>
-            <div className="bg-white rounded-2xl border p-5 mb-4"><h2 className="text-xl font-bold">Live Library Monitor</h2><p className="text-sm text-slate-500 mt-1">Students currently marked inside the library, what they are doing, and their table.</p><div className="flex gap-6 mt-4 text-sm"><span><b>{activeCount}</b> students inside</span><span><b>{readingCount}</b> reading</span><span><b>{workCount}</b> personal work / other</span><span><b>{occupiedTables.size}</b> tables occupied</span><span><b>{40-occupiedTables.size}</b> tables available</span><span><b>{reservedSeats.length}</b> seat reservations</span></div></div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-5">{Array.from({length:40},(_,i)=>{const n=String(i+1); const p=presence.find(x=>x.table_number===n); const reservationsForSeat=reservedSeats.filter(x=>String(x.seat_number).replace(/^F\\d-/,'')===n); const r=reservationsForSeat[0]; return <div key={n} className={`rounded-xl border p-3 min-h-24 ${r?'bg-amber-100 border-amber-300':p?'bg-violet-100 border-violet-300':'bg-white'}`}><div className="text-xs text-slate-500">Seat {n}</div><div className="font-semibold text-sm mt-1">{r?'Reserved':p?p.profiles?.full_name||'Occupied':'Available'}</div>{r&&<div className="text-[10px] text-slate-500 mt-1">F{r.floor} · {r.time_slot}</div>}</div>})}</div>
+            <div className="bg-white rounded-2xl border p-5 mb-4"><h2 className="text-xl font-bold">Live Library Monitor</h2><p className="text-sm text-slate-500 mt-1">Students currently marked inside the library, what they are doing, and their table.</p><div className="flex gap-6 mt-4 text-sm"><span><b>{activeCount}</b> students inside</span><span><b>{readingCount}</b> reading</span><span><b>{workCount}</b> personal work / other</span><span><b>{librarySeats.length}</b> seats configured</span><span><b>{librarySeats.filter(s=>s.status!=='BLOCKED' && !reservedSeats.some(r=>r.seat_number===s.seat_number)).length}</b> seats available</span><span><b>{reservedSeats.length}</b> seat reservations</span></div></div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3 mb-5">{librarySeats.map(seat=>{const r=reservedSeats.find(x=>x.seat_number===seat.seat_number); const p=presence.find(x=>String(x.table_number)===String(seat.seat_number)); return <div key={seat.id} className={`rounded-xl border p-3 min-h-24 ${r?'bg-amber-100 border-amber-300':p?'bg-violet-100 border-violet-300':'bg-white'}`}><div className="text-xs text-slate-500">Seat {seat.seat_number}</div><div className="font-semibold text-sm mt-1">{r?'Reserved':p?p.profiles?.full_name||'Occupied':seat.status==='BLOCKED'?'Blocked':'Available'}</div><div className="text-[10px] text-slate-500 mt-1">Floor {seat.floor} · {seat.section}</div>{r&&<div className="text-[10px] text-amber-700 mt-1">{r.reservation_date} · {r.time_slot}</div>}</div>})}</div><div className="font-semibold text-sm mt-1">{r?'Reserved':p?p.profiles?.full_name||'Occupied':'Available'}</div>{r&&<div className="text-[10px] text-slate-500 mt-1">F{r.floor} · {r.time_slot}</div>}</div>})}</div>
             <div className="bg-white rounded-2xl border overflow-hidden"><div className="p-5 border-b"><h3 className="font-bold">Seat reservations</h3><p className="text-xs text-slate-500 mt-1">Live records from seat_reservations. Cancelled reservations are excluded.</p></div><table className="w-full text-sm"><thead className="bg-slate-50"><tr><th className="text-left px-4 py-3">Student</th><th className="text-left px-4 py-3">Email</th><th className="text-left px-4 py-3">Activity</th><th className="text-left px-4 py-3">Table</th><th className="text-left px-4 py-3">Last update</th></tr></thead><tbody>{presence.map(p=><tr key={p.user_id} className="border-t"><td className="px-4 py-3 font-semibold">{p.profiles?.full_name}</td><td className="px-4 py-3">{p.profiles?.email}</td><td className="px-4 py-3">{p.activity}</td><td className="px-4 py-3">{p.table_number || '—'}</td><td className="px-4 py-3">{new Date(p.updated_at).toLocaleString()}</td></tr>)}</tbody></table></div>
 
             <div className="mt-5 bg-white rounded-2xl border overflow-hidden"><div className="p-5 border-b"><h3 className="font-bold">Reserved seats</h3></div><div className="divide-y">{reservedSeats.length===0 ? <div className="p-5 text-sm text-slate-500">No active seat reservations.</div> : reservedSeats.map(r => { const profile=students.find(s=>s.id===r.user_id) || authors.find(a=>a.id===r.user_id); return <div key={r.id} className="p-4 flex items-center justify-between gap-4 text-sm"><div><b>{r.seat_number}</b><span className="text-slate-500"> · Floor {r.floor} · {r.section || 'Library'}</span><div className="text-xs text-slate-500 mt-1">{profile?.full_name || 'Student'} · {r.reservation_date} · {r.time_slot}</div></div><span className="px-2 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold">{r.status}</span></div>})}</div></div>          </section>
