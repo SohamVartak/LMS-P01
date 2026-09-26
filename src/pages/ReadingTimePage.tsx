@@ -6,11 +6,12 @@ import { Hourglass, Clock, Calendar, BookOpen, Sliders, CheckCircle2, TrendingUp
 export const ReadingTimePage: React.FC = () => {
   const { books, openBookModal, borrowBook } = useLibrary();
 
-  const [selectedBookId, setSelectedBookId] = useState<string>('b-1');
-  const [readingSpeedWpm, setReadingSpeedWpm] = useState<number>(220); // Average college student speed
-  const [dailyMinutes, setDailyMinutes] = useState<number>(30); // 30 minutes a day
+  const [selectedBookId, setSelectedBookId] = useState<string>('');
+  const [readingSpeedWpm, setReadingSpeedWpm] = useState<number>(220); // User-adjustable reading speed
+  const [dailyMinutes, setDailyMinutes] = useState<number>(30); // User-adjustable daily reading time
 
   const currentBook = books.find(b => b.id === selectedBookId) || books[0];
+  if (!currentBook) return <div className="p-8 text-sm text-slate-500">No approved books are currently available.</div>;
 
   // Calculation formulas
   const wordsPerPage = 275;
