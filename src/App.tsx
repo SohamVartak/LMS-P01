@@ -58,7 +58,7 @@ const AppContent: React.FC = () => {
     if (adminPage === 'books') return <AdminBookManagementPage onOpenCirculation={() => setAdminPage('circulation')} />;
     if (adminPage === 'circulation') return <AdminCirculationPage onBack={() => setAdminPage('home')} />;
     if (adminPage === 'health') return <BookHealthPage />;
-    return <AdminPortalPage onOpenBooks={() => setAdminPage('books')} onOpenCirculation={() => setAdminPage('circulation')} />;
+    return <AdminPortalPage onOpenBooks={() => setAdminPage('books')} onOpenCirculation={() => setAdminPage('circulation')} onOpenHealth={() => setAdminPage('health')} />;
   }
 
   if (activePortal === 'AUTHOR') {
