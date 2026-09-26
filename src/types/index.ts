@@ -21,6 +21,7 @@ export interface Book {
   isbn: string;
   title: string;
   author: string;
+  authorId?: string;
   category: BookCategory;
   description: string;
   onlineRating: number | null;
