@@ -28,13 +28,42 @@ export const AdminCirculationPage: React.FC<{ onBack: () => void }> = ({ onBack 
 
   const load = async () => {
     setLoading(true);
+
+    // borrow_records.student_id points to auth.users, not profiles, so we
+    // load students separately and join the display data in the frontend.
     const [borrowRes, studentRes] = await Promise.all([
-      supabase.from('borrow_records').select('id, book_id, student_id, issue_date, due_date, return_date, status, books(title, author_name), profiles:student_id(full_name, student_id)').order('created_at', { ascending: false }),
-      supabase.from('profiles').select('id, full_name, student_id').eq('role', 'STUDENT').order('full_name')
+      supabase
+        .from('borrow_records')
+        .select('id, book_id, student_id, issue_date, due_date, return_date, status, books(title, author_name)')
+        .order('created_at', { ascending: false }),
+      supabase
+        .from('profiles')
+        .select('id, full_name, student_id')
+        .eq('role', 'STUDENT')
+        .order('full_name')
     ]);
-    if (borrowRes.error) addToast('Circulation Error', borrowRes.error.message, 'error');
-    else setRecords((borrowRes.data || []) as BorrowRow[]);
-    if (!studentRes.error) setStudents(studentRes.data || []);
+
+    if (borrowRes.error) {
+      addToast('Circulation Error', borrowRes.error.message, 'error');
+    } else {
+      const studentMap = new Map(
+        (studentRes.data || []).map((student) => [student.id, student])
+      );
+
+      const rows = (borrowRes.data || []).map((record: any) => ({
+        ...record,
+        profiles: studentMap.get(record.student_id) || null
+      }));
+
+      setRecords(rows as BorrowRow[]);
+    }
+
+    if (studentRes.error) {
+      addToast('Student List Error', studentRes.error.message, 'error');
+    } else {
+      setStudents(studentRes.data || []);
+    }
+
     setLoading(false);
   };
 
