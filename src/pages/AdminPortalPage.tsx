@@ -14,6 +14,7 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
   const [students, setStudents] = useState<any[]>([]);
   const [authors, setAuthors] = useState<any[]>([]);
   const [pendingBooks, setPendingBooks] = useState<any[]>([]);
+  const [authorBooks, setAuthorBooks] = useState<any[]>([]);
   const [presence, setPresence] = useState<any[]>([]);
   const [borrowed, setBorrowed] = useState<any[]>([]);
   const [loading, setLoading] = useState(false);
@@ -24,13 +25,13 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
     const [studentRes, authorRes, bookRes, presenceRes, borrowRes] = await Promise.all([
       supabase.from('profiles').select('id,full_name,email,student_id,department,year,role,approval_status,approval_note,created_at').eq('role','STUDENT').order('created_at',{ascending:false}),
       supabase.from('profiles').select('id,full_name,email,department,year,role,created_at').eq('role','AUTHOR').order('created_at',{ascending:false}),
-      supabase.from('books').select('id,title,author_name,author_id,approval_status,ai_status,pdf_path,submitted_at,category,total_copies,available_copies').eq('approval_status','PENDING').order('submitted_at',{ascending:false}),
+      supabase.from('books').select('id,title,author_name,author_id,approval_status,ai_status,pdf_path,submitted_at,category,total_copies,available_copies').order('created_at',{ascending:false}),
       supabase.from('library_presence').select('user_id,table_number,activity,status,updated_at,profiles(full_name,email,student_id,department,year)').eq('status','IN_LIBRARY').order('updated_at',{ascending:false}),
       supabase.from('borrow_records').select('id,student_id,book_id,issue_date,due_date,status,books(title,author_name)').order('created_at',{ascending:false})
     ]);
     if (!studentRes.error) setStudents(studentRes.data || []);
     if (!authorRes.error) setAuthors(authorRes.data || []);
-    if (!bookRes.error) setPendingBooks(bookRes.data || []);
+    if (!bookRes.error) { setAuthorBooks(bookRes.data || []); setPendingBooks((bookRes.data || []).filter((b:any) => b.approval_status === 'PENDING')); }
     if (!presenceRes.error) setPresence(presenceRes.data || []);
     if (!borrowRes.error) setBorrowed(borrowRes.data || []);
     setLoading(false);
@@ -138,8 +139,8 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
         {section === 'authors' && (
           <section className="space-y-4">
             {authors.map(a => {
-              const books = pendingBooks.filter(b => b.author_id === a.id);
-              return <div key={a.id} className="bg-white rounded-2xl border p-5"><div className="flex justify-between gap-4"><div><h2 className="font-bold text-lg">{a.full_name || 'Author'}</h2><p className="text-sm text-slate-500">{a.email}</p></div><span className="text-sm text-slate-500">{a.department || ''} {a.year || ''}</span></div><div className="mt-4 text-sm">{books.length ? books.map(b=><div key={b.id} className="border-t py-3 flex justify-between"><span>{b.title} · {b.approval_status} · AI {b.ai_status}</span><button onClick={()=>setSection('books')} className="text-violet-700 font-semibold">Review</button></div>) : <span className="text-slate-500">No pending submissions.</span>}</div>
+              const books = authorBooks.filter(b => b.author_id === a.id);
+              return <div key={a.id} className="bg-white rounded-2xl border p-5"><div className="flex justify-between gap-4"><div><h2 className="font-bold text-lg">{a.full_name || 'Author'}</h2><p className="text-sm text-slate-500">{a.email}</p></div><span className="text-sm text-slate-500">{a.department || ''} {a.year || ''}</span></div><div className="mt-4 space-y-2">{books.length ? books.map(b=><div key={b.id} className="border-t pt-3 flex items-center justify-between gap-3"><span><b>{b.title}</b><span className="text-slate-500"> · {b.approval_status} · AI {b.ai_status}</span></span>{b.approval_status==='PENDING' && <button onClick={()=>setSection('books')} className="text-violet-700 font-semibold">Review</button>}</div>) : <span className="text-slate-500">No uploaded books.</span>}</div></div>
             })}
           </section>
         )}
