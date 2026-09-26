@@ -6,7 +6,6 @@ import { Sparkles, Check, ArrowRight, BookOpen, Brain, Target, Star, Loader2 } f
 
 interface RecommendedMatch {
   book: Book;
-  matchScore: number;
   reason: string;
 }
 
@@ -17,7 +16,7 @@ export const AIRecommendationPage: React.FC = () => {
   const [selectedGenre, setSelectedGenre] = useState<string>('Computer Engineering');
   const [selectedLevel, setSelectedLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Intermediate');
   const [selectedLength, setSelectedLength] = useState<'Short' | 'Medium' | 'Long'>('Medium');
-  const [selectedGoal, setSelectedGoal] = useState<string>('Improve Skills');
+  const [selectedGoal, setSelectedGoal] = useState<string>('Build Skills');
 
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
   const [recommendations, setRecommendations] = useState<RecommendedMatch[] | null>(null);
@@ -63,7 +62,6 @@ export const AIRecommendationPage: React.FC = () => {
         .slice(0, 3)
         .map(book => ({
           book,
-          matchScore: 0,
           reason: `Catalogue match for ${selectedGenre}, with your selected ${selectedLevel.toLowerCase()} level and ${selectedLength.toLowerCase()} reading preference. Goal: ${selectedGoal}.`
         }));
 
@@ -229,12 +227,8 @@ export const AIRecommendationPage: React.FC = () => {
                 className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs flex flex-col justify-between hover:shadow-md transition-shadow"
               >
                 <div>
-                  {/* Top Match Score Pill */}
                   <div className="flex items-center justify-between mb-4">
-                    <span className="px-2.5 py-1 rounded-full text-xs font-bold font-tabular bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
-                      <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>Catalogue Match</span>
-                    </span>
+                    <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-slate-50 text-slate-700 border border-slate-200">Approved catalogue</span>
                     <span className="text-[11px] text-slate-400">{rec.book.category}</span>
                   </div>
 
