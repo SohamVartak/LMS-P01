@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 
 export const BookHealthPage: React.FC = () => {
-  const { books, updateBookCondition, openBookModal } = useLibrary();
+  const { books, updateBookCondition, openBookModal, user, userRole } = useLibrary();
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedConditionFilter, setSelectedConditionFilter] = useState<string>('All');
@@ -238,6 +238,7 @@ export const BookHealthPage: React.FC = () => {
                       >
                         Update
                       </button>
+          )}
                     </td>
                   </tr>
                 );
