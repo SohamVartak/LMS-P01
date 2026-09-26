@@ -7,7 +7,7 @@ export const ReadingTimePage: React.FC = () => {
   const { books, openBookModal, borrowBook } = useLibrary();
 
   const [selectedBookId, setSelectedBookId] = useState<string>('');
-  const [readingSpeedWpm, setReadingSpeedWpm] = useState<number>(220); // User-adjustable reading speed
+  const [readingSpeedWpm, setReadingSpeedWpm] = useState<number>(220);
   const [dailyMinutes, setDailyMinutes] = useState<number>(30); // User-adjustable daily reading time
 
   const currentBook = books.find(b => b.id === selectedBookId) || books[0];
@@ -88,11 +88,7 @@ export const ReadingTimePage: React.FC = () => {
               onChange={(e) => setReadingSpeedWpm(Number(e.target.value))}
               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
-            <div className="flex justify-between text-[10px] text-slate-400">
-              <span>Careful Reader (150 WPM)</span>
-              <span>College Average (220 WPM)</span>
-              <span>Speed Reader (350+ WPM)</span>
-            </div>
+            <div className="flex justify-between text-[10px] text-slate-400"><span>120 WPM</span><span>Your selected speed</span><span>450 WPM</span></div>
           </div>
 
           {/* 3. Daily Reading Time Slider */}
@@ -112,11 +108,7 @@ export const ReadingTimePage: React.FC = () => {
               onChange={(e) => setDailyMinutes(Number(e.target.value))}
               className="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-blue-600"
             />
-            <div className="flex justify-between text-[10px] text-slate-400">
-              <span>Casual (15 min)</span>
-              <span>Solid Habit (30 min)</span>
-              <span>Intensive Study (60-90 min)</span>
-            </div>
+            <div className="flex justify-between text-[10px] text-slate-400"><span>10 min</span><span>Your selected time</span><span>120 min</span></div>
           </div>
 
           {/* Result Cards Metrics */}
