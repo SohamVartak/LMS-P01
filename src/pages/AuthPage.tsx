@@ -12,7 +12,7 @@ const roles: Record<Role, { title: string; description: string; icon: React.Reac
 };
 
 export const AuthPage: React.FC = () => {
-  const { login, addToast } = useLibrary();
+  const { login, addToast, authError } = useLibrary();
   const [role, setRole] = useState<Role | null>(null);
   const [register, setRegister] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -35,7 +35,7 @@ export const AuthPage: React.FC = () => {
     setLoading(true);
     const ok = await login(email.trim(), password, role);
     setLoading(false);
-    if (!ok) setError('Invalid credentials, or this account belongs to a different portal.');
+    if (!ok) setError(authError || 'Login failed. Please check your email, password, and portal.');
   };
 
   const signUp = async (e: React.FormEvent) => {
