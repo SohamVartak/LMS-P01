@@ -553,6 +553,10 @@ export const LibraryProvider:
         b.publisher ||
         '',
 
+      coverUrl:
+        b.cover_url ||
+        undefined,
+
       coverGradient:
         'from-slate-800 to-violet-950',
 
