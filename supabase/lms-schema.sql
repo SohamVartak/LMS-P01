@@ -49,6 +49,7 @@ alter table public.books add column if not exists pdf_path text;
 alter table public.books add column if not exists ai_summary text;
 alter table public.books add column if not exists ai_status text not null default 'PENDING';
 alter table public.books add column if not exists submitted_at timestamptz not null default now();
+alter table public.books add column if not exists cover_url text;
 
 do $
 begin
