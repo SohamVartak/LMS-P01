@@ -311,3 +311,28 @@ drop trigger if exists books_updated_at on public.books;
 create trigger books_updated_at
 before update on public.books
 for each row execute procedure public.set_books_updated_at();
+
+
+-- LIVE LIBRARY PRESENCE
+create table if not exists public.library_presence (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  table_number text,
+  activity text not null default 'Personal Work',
+  status text not null default 'IN_LIBRARY' check (status in ('IN_LIBRARY','LEFT')),
+  updated_at timestamptz not null default now()
+);
+
+alter table public.library_presence enable row level security;
+
+drop policy if exists "Students can manage their presence" on public.library_presence;
+create policy "Students can manage their presence"
+on public.library_presence for all to authenticated
+using (user_id = auth.uid() and public.current_app_role() = 'STUDENT')
+with check (user_id = auth.uid() and public.current_app_role() = 'STUDENT');
+
+drop policy if exists "Admins can view library presence" on public.library_presence;
+create policy "Admins can view library presence"
+on public.library_presence for select to authenticated
+using (public.current_app_role() = 'ADMIN');
+
+create index if not exists library_presence_status_idx on public.library_presence(status);
