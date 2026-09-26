@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useLibrary } from '../context/LibraryContext';
+import { supabase } from '../lib/supabase';
 import { 
   Armchair, 
   Zap, 
@@ -24,6 +25,7 @@ export const SeatReservationPage: React.FC = () => {
   const [selectedDate, setSelectedDate] = useState<string>('Today');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('09:00 AM – 12:00 PM');
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>('F1-07');
+  const [libraryActivity, setLibraryActivity] = useState('Reading');
 
   const timeSlots = [
     '09:00 AM – 12:00 PM',
@@ -74,7 +76,7 @@ export const SeatReservationPage: React.FC = () => {
 
   const currentSelectedSeat = floorSeats.find(s => s.number === selectedSeatNumber) || floorSeats[0];
 
-  const handleBooking = () => {
+  const handleBooking = async () => {
     if (selectedSeatNumber) {
       reserveSeat(
         selectedFloor,
@@ -83,6 +85,16 @@ export const SeatReservationPage: React.FC = () => {
         selectedTimeSlot,
         currentSelectedSeat.section
       );
+      const { data: auth } = await supabase.auth.getUser();
+      if (auth.user && auth.user.id) {
+        await supabase.from('library_presence').upsert({
+          user_id: auth.user.id,
+          table_number: selectedSeatNumber.replace(/^F\\d-/, ''),
+          activity: libraryActivity,
+          status: 'IN_LIBRARY',
+          updated_at: new Date().toISOString()
+        });
+      }
     }
   };
 
@@ -268,6 +280,15 @@ export const SeatReservationPage: React.FC = () => {
             <h3 className="text-sm font-bold text-[#1E293B] uppercase tracking-wider">
               Carrel Details
             </h3>
+            <div>
+              <label className="block text-xs font-bold text-[#1E293B] uppercase tracking-wider mb-2">What are you doing?</label>
+              <select value={libraryActivity} onChange={e => setLibraryActivity(e.target.value)} className="w-full py-2.5 px-3 rounded-lg border border-slate-300 bg-white text-xs font-medium text-[#1E293B]">
+                <option>Reading</option>
+                <option>Personal Work</option>
+                <option>Research</option>
+                <option>Group Study</option>
+              </select>
+            </div>
 
             <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-3">
               <div className="flex items-center justify-between">
