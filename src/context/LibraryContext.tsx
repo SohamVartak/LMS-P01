@@ -864,6 +864,56 @@ export const LibraryProvider:
     }
 
     /* -------------------------------------------------------
+       SEAT RESERVATIONS
+       ------------------------------------------------------- */
+    const { data: dbReservations, error: reservationsError } = await supabase
+      .from('seat_reservations')
+      .select('id, seat_number, floor, section, reservation_date, time_slot, status, created_at')
+      .eq('user_id', userId)
+      .order('created_at', { ascending: false });
+
+    if (!reservationsError && dbReservations) {
+      setReservations(dbReservations.map((r: any) => ({
+        id: r.id,
+        seatNumber: r.seat_number,
+        floor: Number(r.floor),
+        section: r.section || '',
+        date: new Date(r.reservation_date + 'T00:00:00').toLocaleDateString('en-IN', {
+          day: '2-digit',
+          month: 'short'
+        }),
+        timeSlot: r.time_slot,
+        status: r.status === 'CANCELLED' ? 'Cancelled' : 'Confirmed',
+        createdAt: new Date(r.created_at).toLocaleString()
+      })));
+    }
+
+    /* -------------------------------------------------------
+       BOOK EXCHANGE
+       ------------------------------------------------------- */
+    const { data: dbExchange, error: exchangeError } = await supabase
+      .from('book_exchange_items')
+      .select('id, owner_id, title, author, category, condition, description, status, created_at, profiles:owner_id(full_name, department, year)')
+      .order('created_at', { ascending: false });
+
+    if (!exchangeError && dbExchange) {
+      setExchangeItems(dbExchange.map((item: any) => ({
+        id: item.id,
+        title: item.title,
+        author: item.author,
+        ownerName: item.profiles?.full_name || 'Student',
+        ownerId: item.owner_id,
+        department: item.profiles?.department || 'Engineering',
+        year: item.profiles?.year || '',
+        category: item.category,
+        condition: item.condition as BookCondition,
+        description: item.description || '',
+        status: item.status === 'EXCHANGED' ? 'Exchanged' : item.status === 'REQUESTED' ? 'Requested' : 'Available',
+        postedDate: new Date(item.created_at).toISOString().split('T')[0]
+      })));
+    }
+
+    /* -------------------------------------------------------
        NOTIFICATIONS
        ------------------------------------------------------- */
 
@@ -2282,181 +2332,84 @@ export const LibraryProvider:
      SEAT RESERVATION
      ======================================================= */
 
-  const reserveSeat = (
+  const reserveSeat = async (
     floor: number,
     seatNumber: string,
     date: string,
     timeSlot: string,
     section: string
-  ): boolean => {
+  ): Promise<boolean> => {
+    if (!user.id) return false;
 
-    const exists =
-      reservations.some(
-        r =>
-          r.floor ===
-            floor &&
-          r.seatNumber ===
-            seatNumber &&
-          r.date ===
-            date &&
-          r.timeSlot ===
-            timeSlot &&
-          r.status !==
-            'Cancelled'
-      );
-
-
-    if (exists) {
-
-      addToast(
-        'Seat Occupied',
-        `Seat ${seatNumber} is already reserved for this slot. Please pick another.`,
-        'warning'
-      );
-
+    const existing = reservations.some(
+      r => r.floor === floor && r.seatNumber === seatNumber &&
+        r.date === date && r.timeSlot === timeSlot && r.status !== 'Cancelled'
+    );
+    if (existing) {
+      addToast('Seat Occupied', `Seat ${seatNumber} is already reserved for this slot.`, 'warning');
       return false;
     }
 
+    const now = new Date();
+    const reservationDate = date === 'Today'
+      ? now
+      : date === 'Tomorrow'
+        ? new Date(now.getTime() + 86400000)
+        : new Date(now.getTime() + 172800000);
+    const isoDate = reservationDate.toISOString().split('T')[0];
 
-    const newRes:
-      SeatReservation = {
+    const { data, error } = await supabase
+      .from('seat_reservations')
+      .insert({
+        user_id: user.id,
+        seat_number: seatNumber,
+        floor,
+        section,
+        reservation_date: isoDate,
+        time_slot: timeSlot,
+        status: 'CONFIRMED'
+      })
+      .select('id, created_at')
+      .single();
 
-      id:
-        'res-' +
-        Date.now(),
+    if (error) {
+      addToast('Reservation Failed', error.message, 'error');
+      return false;
+    }
 
+    const newRes: SeatReservation = {
+      id: data.id,
       seatNumber,
-
       floor,
-
       section,
-
       date,
-
       timeSlot,
-
-      status:
-        'Confirmed',
-
-      createdAt:
-        'Just now'
+      status: 'Confirmed',
+      createdAt: new Date(data.created_at).toLocaleString()
     };
 
-
-    setReservations(
-      prev => [
-        newRes,
-        ...prev
-      ]
-    );
-
-
-    setActivities(
-      prev => [
-        {
-          id:
-            'act-' +
-            Date.now(),
-
-          title:
-            'Seat Reserved',
-
-          description:
-            `Reserved Seat ${seatNumber} (Floor ${floor}) for ${date}, ${timeSlot}`,
-
-          timestamp:
-            'Just now',
-
-          type:
-            'seat'
-        },
-
-        ...prev
-      ]
-    );
-
-
-    setNotifications(
-      prev => [
-        {
-          id:
-            'notif-' +
-            Date.now(),
-
-          title:
-            'Seat Reservation Confirmed',
-
-          message:
-            `Your reservation for Seat ${seatNumber} (Floor ${floor}) is confirmed for ${timeSlot} on ${date}.`,
-
-          type:
-            'seat',
-
-          timestamp:
-            'Just now',
-
-          read:
-            false,
-
-          linkPage:
-            'seat-reservation'
-        },
-
-        ...prev
-      ]
-    );
-
-
-    addToast(
-      'Seat Reserved Successfully',
-      `Seat ${seatNumber} on Floor ${floor} confirmed for ${timeSlot} ✓`,
-      'success'
-    );
-
-
+    setReservations(prev => [newRes, ...prev]);
+    addToast('Seat Reserved Successfully', `Seat ${seatNumber} on Floor ${floor} confirmed for ${timeSlot} ✓`, 'success');
     return true;
   };
 
+  const cancelSeatReservation = async (resId: string) => {
+    const target = reservations.find(r => r.id === resId);
+    if (!target || !user.id) return;
 
-  const cancelSeatReservation = (
-    resId: string
-  ) => {
+    const { error } = await supabase
+      .from('seat_reservations')
+      .update({ status: 'CANCELLED' })
+      .eq('id', resId)
+      .eq('user_id', user.id);
 
-    const target =
-      reservations.find(
-        r =>
-          r.id ===
-          resId
-      );
-
-
-    if (!target) {
+    if (error) {
+      addToast('Cancellation Failed', error.message, 'error');
       return;
     }
 
-
-    setReservations(
-      prev =>
-        prev.map(
-          r =>
-            r.id ===
-            resId
-              ? {
-                  ...r,
-
-                  status:
-                    'Cancelled'
-                }
-              : r
-        )
-    );
-
-
-    addToast(
-      'Reservation Cancelled',
-      `Seat ${target.seatNumber} booking has been released.`,
-      'info'
-    );
+    setReservations(prev => prev.map(r => r.id === resId ? { ...r, status: 'Cancelled' } : r));
+    addToast('Reservation Cancelled', `Seat ${target.seatNumber} booking has been released.`, 'info');
   };
 
 
@@ -2518,7 +2471,7 @@ export const LibraryProvider:
      BOOK EXCHANGE
      ======================================================= */
 
-  const addExchangeListing = (
+  const addExchangeListing = async (
     item: {
       title: string;
       author: string;
@@ -2527,133 +2480,79 @@ export const LibraryProvider:
       description: string;
     }
   ) => {
+    if (!user.id) return;
 
-    const newItem:
-      BookExchangeItem = {
+    const { data, error } = await supabase
+      .from('book_exchange_items')
+      .insert({
+        owner_id: user.id,
+        title: item.title.trim(),
+        author: item.author.trim(),
+        category: item.category,
+        condition: item.condition,
+        description: item.description.trim(),
+        status: 'AVAILABLE'
+      })
+      .select('id, created_at')
+      .single();
 
-      id:
-        'ex-' +
-        Date.now(),
-
-      title:
-        item.title,
-
-      author:
-        item.author,
-
-      category:
-        item.category,
-
-      condition:
-        item.condition,
-
-      description:
-        item.description,
-
-      ownerName:
-        user.name,
-
-      ownerId:
-        user.studentId,
-
-      department:
-        user.department,
-
-      year:
-        user.year,
-
-      status:
-        'Available',
-
-      postedDate:
-        new Date()
-          .toISOString()
-          .split(
-            'T'
-          )[0]
-    };
-
-
-    setExchangeItems(
-      prev => [
-        newItem,
-        ...prev
-      ]
-    );
-
-
-    setActivities(
-      prev => [
-        {
-          id:
-            'act-' +
-            Date.now(),
-
-          title:
-            'Exchange Listing Posted',
-
-          description:
-            `Listed "${item.title}" on the Student Book Exchange Corner.`,
-
-          timestamp:
-            'Just now',
-
-          type:
-            'exchange'
-        },
-
-        ...prev
-      ]
-    );
-
-
-    addToast(
-      'Listing Published',
-      `"${item.title}" is now visible to all students for book exchange ✓`,
-      'success'
-    );
-  };
-
-
-  const requestExchange = (
-    itemId: string
-  ) => {
-
-    const target =
-      exchangeItems.find(
-        e =>
-          e.id ===
-          itemId
-      );
-
-
-    if (!target) {
+    if (error) {
+      addToast('Listing Failed', error.message, 'error');
       return;
     }
 
+    const newItem: BookExchangeItem = {
+      id: data.id,
+      title: item.title,
+      author: item.author,
+      category: item.category,
+      condition: item.condition,
+      description: item.description,
+      ownerName: user.name,
+      ownerId: user.id,
+      department: user.department,
+      year: user.year,
+      status: 'Available',
+      postedDate: new Date(data.created_at).toISOString().split('T')[0]
+    };
 
-    setExchangeItems(
-      prev =>
-        prev.map(
-          e =>
-            e.id ===
-            itemId
-              ? {
-                  ...e,
-
-                  status:
-                    'Requested'
-                }
-              : e
-        )
-    );
+    setExchangeItems(prev => [newItem, ...prev]);
+    addToast('Listing Published', `"${item.title}" is now visible to students for book exchange ✓`, 'success');
+  };
 
 
-    addToast(
-      'Exchange Request Sent',
-      `Request submitted to ${target.ownerName} (${target.department}). They will be notified!`,
-      'success'
-    );
+  const requestExchange = async (itemId: string) => {
+    if (!user.id) return;
+
+    const target = exchangeItems.find(e => e.id === itemId);
+    if (!target || target.ownerId === user.id) return;
+
+    const { error: requestError } = await supabase
+      .from('book_exchange_requests')
+      .insert({
+        item_id: itemId,
+        requester_id: user.id,
+        status: 'PENDING'
+      });
+
+    if (requestError) {
+      addToast('Exchange Request Failed', requestError.message, 'error');
+      return;
+    }
+
+    const { error: itemError } = await supabase
+      .from('book_exchange_items')
+      .update({ status: 'REQUESTED' })
+      .eq('id', itemId)
+      .eq('status', 'AVAILABLE');
+
+    if (itemError) {
+      addToast('Exchange Update Failed', itemError.message, 'error');
+      return;
+    }
+
+    setExchangeItems(prev => prev.map(e => e.id === itemId ? { ...e, status: 'Requested' } : e));
+    addToast('Exchange Request Sent', `Request submitted to ${target.ownerName}.`, 'success');
   };
 
 
