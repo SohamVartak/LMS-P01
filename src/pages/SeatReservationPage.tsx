@@ -24,7 +24,8 @@ export const SeatReservationPage: React.FC = () => {
   const [selectedFloor, setSelectedFloor] = useState<number>(1);
   const [selectedDate, setSelectedDate] = useState<string>('Today');
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('09:00 AM – 12:00 PM');
-  const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>('F1-07');
+  const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>(null);
+  const [allReservations, setAllReservations] = useState<any[]>([]);
   const [libraryActivity, setLibraryActivity] = useState('Reading');
 
   const timeSlots = [
@@ -34,11 +35,18 @@ export const SeatReservationPage: React.FC = () => {
     '06:00 PM – 09:00 PM'
   ];
 
-  const dates = [
-    { label: 'Today', sub: 'Sep 24' },
-    { label: 'Tomorrow', sub: 'Sep 25' },
-    { label: 'Day After', sub: 'Sep 26' }
-  ];
+  const dateOptions = Array.from({ length: 3 }, (_, index) => {
+    const date = new Date();
+    date.setHours(0, 0, 0, 0);
+    date.setDate(date.getDate() + index);
+    return {
+      label: index === 0 ? 'Today' : index === 1 ? 'Tomorrow' : 'Day After',
+      sub: date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+      value: date.toISOString().slice(0, 10)
+    };
+  });
+
+  const selectedDateValue = dateOptions.find(d => d.label === selectedDate)?.value || dateOptions[0].value;
 
   // Generate 20 seats for current floor
   const floorSeats: SeatConfig[] = Array.from({ length: 20 }, (_, i) => {
@@ -58,26 +66,37 @@ export const SeatReservationPage: React.FC = () => {
     };
   });
 
-  // Calculate status for each seat based on active reservations & predefined occupied seats
+  React.useEffect(() => {
+    const loadReservations = async () => {
+      const { data } = await supabase
+        .from('seat_reservations')
+        .select('id, user_id, seat_number, floor, section, reservation_date, time_slot, status')
+        .eq('reservation_date', selectedDateValue)
+        .eq('floor', selectedFloor)
+        .eq('time_slot', selectedTimeSlot)
+        .neq('status', 'CANCELLED');
+      setAllReservations(data || []);
+    };
+    void loadReservations();
+  }, [selectedDateValue, selectedFloor, selectedTimeSlot]);
+
+  // Calculate status from real database reservations only
   const getSeatStatus = (seatNo: string): 'selected' | 'occupied' | 'reserved' | 'available' => {
     if (selectedSeatNumber === seatNo) return 'selected';
 
-    // Check user's reservations
-    const userRes = reservations.find(r => r.seatNumber === seatNo && r.floor === selectedFloor && r.timeSlot === selectedTimeSlot && r.status === 'Confirmed');
-    if (userRes) return 'reserved';
-
-    // Dummy mock occupancy patterns based on seat number
-    const seatIdNumber = parseInt(seatNo.split('-')[1], 10);
-    if ([2, 5, 11, 14, 18].includes(seatIdNumber)) return 'occupied';
-    if ([3, 8, 16].includes(seatIdNumber)) return 'reserved';
-
+    const dbReservation = allReservations.find(r => r.seat_number === seatNo);
+    if (dbReservation) {
+      return dbReservation.user_id === reservations.find(r => r.seatNumber === seatNo && r.floor === selectedFloor && r.timeSlot === selectedTimeSlot)?.userId
+        ? 'reserved'
+        : 'occupied';
+    }
     return 'available';
   };
 
-  const currentSelectedSeat = floorSeats.find(s => s.number === selectedSeatNumber) || floorSeats[0];
+  const currentSelectedSeat = floorSeats.find(s => s.number === selectedSeatNumber) || null;
 
   const handleBooking = async () => {
-    if (selectedSeatNumber) {
+    if (selectedSeatNumber && currentSelectedSeat) {
       reserveSeat(
         selectedFloor,
         selectedSeatNumber,
@@ -294,7 +313,7 @@ export const SeatReservationPage: React.FC = () => {
               <div className="flex items-center justify-between">
                 <span className="text-xs text-slate-500">Seat Number</span>
                 <span className="text-base font-bold text-[#1E293B] font-tabular">
-                  {currentSelectedSeat.number}
+                  {currentSelectedSeat?.number || 'Select a seat'}
                 </span>
               </div>
 
@@ -305,17 +324,17 @@ export const SeatReservationPage: React.FC = () => {
 
               <div className="flex items-center justify-between text-xs">
                 <span className="text-slate-500">Acoustic Zone</span>
-                <span className="font-semibold text-slate-800">{currentSelectedSeat.section}</span>
+                <span className="font-semibold text-slate-800">{currentSelectedSeat?.section || 'Select a seat to view details'}</span>
               </div>
 
               <div className="pt-2 border-t border-slate-200 space-y-2 text-xs text-slate-600">
                 <div className="flex items-center gap-2">
                   <Zap className="w-3.5 h-3.5 text-[#4C1D95]" />
-                  <span>230V AC Power Socket {currentSelectedSeat.hasPower ? 'Available' : 'Nearby'}</span>
+                  <span>230V AC Power Socket {currentSelectedSeat?.hasPower ? 'Available' : 'Nearby'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Sun className="w-3.5 h-3.5 text-[#F97316]" />
-                  <span>{currentSelectedSeat.isWindow ? 'Direct Window Natural Light' : 'Dual LED Task Lamp'}</span>
+                  <span>{currentSelectedSeat?.isWindow ? 'Direct Window Natural Light' : 'Dual LED Task Lamp'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Volume2 className="w-3.5 h-3.5 text-slate-500" />
@@ -332,6 +351,7 @@ export const SeatReservationPage: React.FC = () => {
 
             {/* Action button in Coral / Warm Amber (#F97316) */}
             <button
+              disabled={!selectedSeatNumber || !currentSelectedSeat || getSeatStatus(selectedSeatNumber) !== 'selected' && getSeatStatus(selectedSeatNumber) !== 'available'}
               onClick={handleBooking}
               className="w-full py-2.5 px-4 rounded-xl bg-[#F97316] hover:bg-[#EA580C] text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-md active:scale-95"
             >
