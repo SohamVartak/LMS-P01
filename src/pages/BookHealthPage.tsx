@@ -73,36 +73,67 @@ export const BookHealthPage: React.FC = () => {
     setConditionNotes(currentNotes || '');
   };
 
+  const [saveStatus, setSaveStatus] = useState<{ type: 'idle' | 'saving' | 'success' | 'error'; message: string }>({
+    type: 'idle',
+    message: ''
+  });
+
   const handleSaveCondition = async () => {
     if (!editingBookId) return;
-    if (userRole !== 'ADMIN') {
-      addToast('Administrator Access Required', 'Only a library administrator can update book condition.', 'warning');
-      return;
+
+    setSaveStatus({ type: 'saving', message: 'Saving condition to the library database...' });
+
+    try {
+      const { data, error } = await supabase.rpc('set_book_condition', {
+        p_book_id: editingBookId,
+        p_condition: newCondition,
+        p_notes: conditionNotes || ''
+      });
+
+      if (error) {
+        console.error('Book Health save failed:', error);
+        setSaveStatus({ type: 'error', message: error.message || 'The database rejected the update.' });
+        return;
+      }
+
+      console.log('Book Health saved:', data);
+
+      setBooks(prev =>
+        prev.map(book =>
+          book.id === editingBookId
+            ? {
+                ...book,
+                condition: newCondition,
+                condition_notes: conditionNotes || '',
+                condition_set_at: new Date().toISOString()
+              }
+            : book
+        )
+      );
+
+      setSaveStatus({
+        type: 'success',
+        message: `Saved successfully. This book is now marked "${newCondition}".`
+      });
+
+      addToast(
+        'Book Health Updated',
+        `Condition changed to "${newCondition}".`,
+        'success'
+      );
+
+      window.setTimeout(() => {
+        setEditingBookId(null);
+        setConditionNotes('');
+        setSaveStatus({ type: 'idle', message: '' });
+      }, 700);
+    } catch (err) {
+      console.error('Unexpected Book Health error:', err);
+      setSaveStatus({
+        type: 'error',
+        message: err instanceof Error ? err.message : 'Unexpected error while saving.'
+      });
     }
-
-    const saved = await updateBookCondition(editingBookId, newCondition, conditionNotes);
-    if (!saved) return;
-
-    setBooks(prev =>
-      prev.map(book =>
-        book.id === editingBookId
-          ? {
-              ...book,
-              condition: newCondition,
-              condition_notes: conditionNotes || '',
-              condition_set_at: new Date().toISOString()
-            }
-          : book
-      )
-    );
-
-    setEditingBookId(null);
-    setConditionNotes('');
-    addToast(
-      'Book Health Updated',
-      `Condition changed to "${newCondition}". The book is now available under the matching health filter.`,
-      'success'
-    );
   };
 
   return (
@@ -329,18 +360,35 @@ export const BookHealthPage: React.FC = () => {
               />
             </div>
 
+            {saveStatus.type !== 'idle' && (
+              <div
+                className={`text-xs rounded-lg px-3 py-2 border ${
+                  saveStatus.type === 'error'
+                    ? 'bg-red-50 text-red-700 border-red-200'
+                    : saveStatus.type === 'success'
+                      ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                      : 'bg-blue-50 text-blue-700 border-blue-200'
+                }`}
+              >
+                {saveStatus.message}
+              </div>
+            )}
+
             <div className="pt-2 flex items-center justify-end gap-2">
               <button
+                type="button"
                 onClick={() => setEditingBookId(null)}
                 className="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-lg"
               >
                 Cancel
               </button>
               <button
+                type="button"
                 onClick={handleSaveCondition}
-                className="px-5 py-2 text-xs font-semibold text-white bg-blue-950 hover:bg-blue-900 rounded-lg shadow-xs"
+                disabled={saveStatus.type === 'saving'}
+                className="px-5 py-2 text-xs font-semibold text-white bg-blue-950 hover:bg-blue-900 disabled:opacity-60 disabled:cursor-not-allowed rounded-lg shadow-xs"
               >
-                Save Inspection Record
+                {saveStatus.type === 'saving' ? 'Saving...' : 'Save Inspection Record'}
               </button>
             </div>
           </div>
