@@ -455,7 +455,7 @@ export const LibraryProvider: React.FC<{
       } = await supabase
         .from('profiles')
         .select(
-          'full_name, role, student_id, department, year'
+          'full_name, role, student_id, department, year, email, approval_status'
         )
         .eq('id', userId)
         .maybeSingle();
@@ -486,6 +486,15 @@ export const LibraryProvider: React.FC<{
         setActivePortal(null);
         setCurrentPageState('dashboard');
 
+        return;
+      }
+
+      if (data.role === 'STUDENT' && requestedPortalRef.current === 'STUDENT' && data.approval_status !== 'APPROVED') {
+        setAuthError(data.approval_status === 'REJECTED' ? 'Your student registration was rejected by the administrator.' : 'Your student registration is waiting for administrator approval.');
+        await supabase.auth.signOut();
+        setIsLoggedIn(false);
+        setUserRole(null);
+        setActivePortal(null);
         return;
       }
 
