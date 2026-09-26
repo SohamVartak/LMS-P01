@@ -442,112 +442,14 @@ export const LibraryProvider: React.FC<{
 
   /*
    * AUTH + PROFILE INITIALIZATION
+   *
+   * Startup sign-out is intentionally handled without an auth-state
+   * listener. The listener previously created a race where the startup
+   * SIGNED_OUT event could arrive while Author/Admin login was completing.
+   * login() and logout() are now the only flows that change portal state.
    */
   useEffect(() => {
     let mounted = true;
-    let initializing = true;
-
-    const loadProfile = async (userId: string) => {
-      const { data, error } = await supabase
-        .from('profiles')
-        .select('full_name, role, student_id, department, year, email, approval_status')
-        .eq('id', userId)
-        .maybeSingle();
-
-      if (!mounted) return;
-
-      if (
-        error ||
-        !data ||
-        !['STUDENT', 'AUTHOR', 'ADMIN'].includes(data.role)
-      ) {
-        console.error('PROFILE LOAD ERROR:', error);
-        await supabase.auth.signOut();
-        if (!mounted) return;
-        setIsLoggedIn(false);
-        setUserRole(null);
-        setActivePortal(null);
-        setCurrentPageState('dashboard');
-        setAuthLoading(false);
-        return;
-      }
-
-      if (
-        data.role === 'STUDENT' &&
-        requestedPortalRef.current === 'STUDENT' &&
-        data.approval_status !== 'APPROVED'
-      ) {
-        const message =
-          data.approval_status === 'REJECTED'
-            ? 'Your student registration was rejected by the administrator.'
-            : 'Your student registration is waiting for administrator approval.';
-
-        await supabase.auth.signOut();
-        if (!mounted) return;
-        setAuthError(message);
-        setIsLoggedIn(false);
-        setUserRole(null);
-        setActivePortal(null);
-        setAuthLoading(false);
-        return;
-      }
-
-      setUser(prev => ({
-        ...prev,
-        id: userId,
-        name: data.full_name || prev.name,
-        email: data.email || prev.email,
-        studentId: data.student_id || prev.studentId,
-        department: data.department || prev.department,
-        year: data.year || prev.year
-      }));
-
-      setUserRole(data.role as 'STUDENT' | 'AUTHOR' | 'ADMIN');
-      setActivePortal(
-        requestedPortalRef.current ||
-          (data.role as 'STUDENT' | 'AUTHOR' | 'ADMIN')
-      );
-      setIsLoggedIn(true);
-      setAuthLoading(false);
-      setCurrentPageState('dashboard');
-
-      if (
-        data.role === 'STUDENT' ||
-        requestedPortalRef.current === 'STUDENT'
-      ) {
-        void loadStudentData(userId);
-      }
-    };
-
-
-    /*
-     * Register the listener BEFORE clearing any old Supabase session.
-     *
-     * authLoading stays true during this startup step, so the login form
-     * cannot be submitted while the startup sign-out is still running.
-     * The SIGNED_OUT event caused by startup cleanup is ignored as a
-     * navigation event. After initialization finishes, a real SIGNED_IN
-     * event loads the profile and opens the selected portal.
-     */
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      (event, session) => {
-        if (!mounted) return;
-
-        if (event === 'SIGNED_IN' && session?.user) {
-          void loadProfile(session.user.id);
-          return;
-        }
-
-        if (event === 'SIGNED_OUT' && !initializing) {
-          setIsLoggedIn(false);
-          setUserRole(null);
-          setActivePortal(null);
-          requestedPortalRef.current = null;
-          setCurrentPageState('dashboard');
-          setAuthLoading(false);
-        }
-      }
-    );
 
     const initializeAuth = async () => {
       await supabase.auth.signOut();
@@ -559,8 +461,7 @@ export const LibraryProvider: React.FC<{
       setActivePortal(null);
       requestedPortalRef.current = null;
       setCurrentPageState('dashboard');
-
-      initializing = false;
+      setAuthError('');
       setAuthLoading(false);
     };
 
@@ -568,7 +469,6 @@ export const LibraryProvider: React.FC<{
 
     return () => {
       mounted = false;
-      listener.subscription.unsubscribe();
     };
   }, []);
   /*
