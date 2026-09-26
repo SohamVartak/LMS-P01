@@ -38,7 +38,7 @@ interface NavItem {
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) => {
-  const { currentPage, setCurrentPage, notifications, logout } = useLibrary();
+  const { currentPage, setCurrentPage, notifications, logout, user } = useLibrary();
 
   const unreadCount = notifications.filter(n => !n.read).length;
 
@@ -49,7 +49,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ mobileOpen, onCloseMobile }) =
     { id: 'ai-recommendations', label: 'AI Advisor', icon: <Sparkles className="w-4 h-4" /> },
     { id: 'reading-mood', label: 'Reading Mood', icon: <Smile className="w-4 h-4" /> },
     { id: 'seat-reservation', label: 'Seat Reservation', icon: <Armchair className="w-4 h-4" /> },
-    { id: 'reading-streak', label: 'Reading Streak', icon: <Flame className="w-4 h-4 text-[#F97316]" />, badge: '7d' },
+    { id: 'reading-streak', label: 'Reading Streak', icon: <Flame className="w-4 h-4 text-[#F97316]" />, badge: user.readingStreak > 0 ? `${user.readingStreak}d` : undefined },
     { id: 'book-exchange', label: 'Book Exchange', icon: <ArrowLeftRight className="w-4 h-4" /> },
     { id: 'companion-finder', label: 'Companion Finder', icon: <Users className="w-4 h-4" /> },
     { id: 'smart-shelf', label: 'Smart Shelf QR', icon: <QrCode className="w-4 h-4" /> },
