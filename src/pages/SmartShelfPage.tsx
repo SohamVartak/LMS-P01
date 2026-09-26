@@ -35,7 +35,7 @@ export const SmartShelfPage: React.FC = () => {
       {/* Header */}
       <div className="pb-4 border-b border-slate-200">
         <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
-          Physical Stacks Telemetry
+          Configured Stack Records
         </span>
         <h1 className="text-2xl font-bold font-serif-academic text-slate-900 tracking-tight mt-0.5 flex items-center gap-2">
           <span>Smart Shelf Navigator</span>
@@ -137,9 +137,7 @@ export const SmartShelfPage: React.FC = () => {
             <QrCode className="w-24 h-24 text-slate-900" />
             
             {/* Animated Laser Sweep Line */}
-            {isScanning && (
-              <div className="absolute left-2 right-2 h-1 bg-rose-500 shadow-lg shadow-rose-500/80 animate-laser" />
-            )}
+
           </div>
 
           {scanSuccess ? (
