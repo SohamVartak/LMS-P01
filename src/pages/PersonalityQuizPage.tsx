@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { useLibrary } from '../context/LibraryContext';
 import { BookSpineCover } from '../components/common/BookSpineCover';
-import { PersonalityResult } from '../types';
 import { 
   HelpCircle, 
   ArrowRight, 
@@ -16,7 +15,7 @@ import {
 const buildQuestions = (book: any) => [
   {
     question: `Which author is associated with “${book.title}”?`,
-    options: [book.author, 'Martin Fowler', 'Andrew S. Tanenbaum', 'Robert C. Martin'].sort(() => 0.5 - Math.random())
+    options: [book.author, 'Martin Fowler', 'Andrew S. Tanenbaum', 'Robert C. Martin']
   },
   {
     question: `Which category is this book listed under?`,
