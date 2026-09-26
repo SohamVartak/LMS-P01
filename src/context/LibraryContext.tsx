@@ -537,28 +537,11 @@ export const LibraryProvider: React.FC<{
       }
     };
 
-    const init = async () => {
-      // Always require an explicit login when the app starts.
-      // Supabase normally persists the previous browser session, so clear it here.
-      await supabase.auth.signOut();
-
-      if (mounted) {
-        setIsLoggedIn(false);
-        setUserRole(null);
-        setCurrentPageState('dashboard');
-        setAuthLoading(false);
-      }
-    };
-
-    void init();
-
     const {
       data: listener
     } =
       supabase.auth.onAuthStateChange(
         (event, session) => {
-          // Supabase emits INITIAL_SESSION on startup. Ignore it because init()
-          // deliberately clears any persisted session.
           if (event === 'INITIAL_SESSION') return;
 
           if (!session) {
@@ -569,13 +552,29 @@ export const LibraryProvider: React.FC<{
             setCurrentPageState('dashboard');
           } else if (event === 'SIGNED_IN') {
             setTimeout(() => {
-              void loadProfile(
-                session.user.id
-              );
+              void loadProfile(session.user.id);
             }, 0);
           }
         }
       );
+
+    const init = async () => {
+      // Clear a persisted session before showing the login screen.
+      // authLoading stays true while this finishes, so a new login cannot
+      // race with the startup sign-out.
+      await supabase.auth.signOut();
+
+      if (mounted) {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        setActivePortal(null);
+        requestedPortalRef.current = null;
+        setCurrentPageState('dashboard');
+        setAuthLoading(false);
+      }
+    };
+
+    void init();
 
     return () => {
       mounted = false;
@@ -2138,7 +2137,7 @@ export const LibraryProvider: React.FC<{
     } = await supabase
       .from('profiles')
       .select(
-        'full_name, role, student_id, department, year'
+        'full_name, role, student_id, department, year, email, approval_status'
       )
       .eq(
         'id',
@@ -2193,6 +2192,26 @@ export const LibraryProvider: React.FC<{
       'PROFILE FOUND:',
       profile
     );
+
+    // Student accounts must be approved by an administrator before they
+    // can enter the student portal. Check this here before rendering it,
+    // preventing the brief dashboard flash followed by a logout.
+    if (
+      profile.role === 'STUDENT' &&
+      expectedRole === 'STUDENT' &&
+      profile.approval_status !== 'APPROVED'
+    ) {
+      await supabase.auth.signOut();
+
+      const message =
+        profile.approval_status === 'REJECTED'
+          ? 'Your student registration was rejected by the administrator.'
+          : 'Your student registration is waiting for administrator approval.';
+
+      setAuthError(message);
+      addToast('Student Approval Required', message, 'warning');
+      return false;
+    }
 
     /*
      * ROLE CHECK
