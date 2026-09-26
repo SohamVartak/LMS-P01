@@ -83,19 +83,26 @@ export const BookHealthPage: React.FC = () => {
     const saved = await updateBookCondition(editingBookId, newCondition, conditionNotes);
     if (!saved) return;
 
-    const { data, error } = await supabase
-      .from('books')
-      .select('id,title,author_name,category,shelf_location,condition,condition_notes,condition_set_at,author_id')
-      .eq('approval_status', 'APPROVED')
-      .order('title');
+    setBooks(prev =>
+      prev.map(book =>
+        book.id === editingBookId
+          ? {
+              ...book,
+              condition: newCondition,
+              condition_notes: conditionNotes || '',
+              condition_set_at: new Date().toISOString()
+            }
+          : book
+      )
+    );
 
-    if (error) {
-      addToast('Refresh Failed', error.message, 'error');
-      return;
-    }
-
-    setBooks(data || []);
     setEditingBookId(null);
+    setConditionNotes('');
+    addToast(
+      'Book Health Updated',
+      `Condition changed to "${newCondition}". The book is now available under the matching health filter.`,
+      'success'
+    );
   };
 
   return (
