@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import { useLibrary } from '../context/LibraryContext';
 import { BookSpineCover } from '../components/common/BookSpineCover';
-import { 
-  BarChart3, 
-  TrendingUp, 
-  Flame, 
-  Layers, 
-  Users, 
-  BookOpen, 
-  Search,
-  Filter,
-  ArrowUpRight
-} from 'lucide-react';
+import { BarChart3, Search } from 'lucide-react';
 
 export const PopularityHeatMapPage: React.FC = () => {
   const { books, openBookModal, borrowBook } = useLibrary();
@@ -34,25 +24,25 @@ export const PopularityHeatMapPage: React.FC = () => {
   const getHeatBadge = (score: number) => {
     if (score >= 90) {
       return {
-        label: 'Peak Circulation 🔥',
+        label: '5-star rating',
         style: 'bg-rose-50 text-rose-700 border-rose-200',
         barColor: 'bg-rose-500'
       };
     } else if (score >= 80) {
       return {
-        label: 'High Demand',
+        label: '4+ rating',
         style: 'bg-orange-50 text-orange-700 border-orange-200',
         barColor: 'bg-orange-500'
       };
     } else if (score >= 70) {
       return {
-        label: 'Moderate',
+        label: '3+ rating',
         style: 'bg-blue-50 text-blue-700 border-blue-200',
         barColor: 'bg-blue-500'
       };
     }
     return {
-      label: 'Steady',
+      label: 'Below 3 rating / not rated',
       style: 'bg-emerald-50 text-emerald-700 border-emerald-200',
       barColor: 'bg-emerald-500'
     };
@@ -64,14 +54,14 @@ export const PopularityHeatMapPage: React.FC = () => {
       {/* Header */}
       <div className="pb-4 border-b border-slate-200">
         <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
-          Circulation Telemetry
+          Catalogue Analytics
         </span>
         <h1 className="text-2xl font-bold font-serif-academic text-slate-900 tracking-tight mt-0.5 flex items-center gap-2">
-          <span>Popularity Heat Map & Analytics</span>
+          <span>Catalogue Ratings & Availability</span>
           <BarChart3 className="w-6 h-6 text-blue-600" />
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Explore the current approved catalogue using live inventory and available rating data. No synthetic popularity scores are used.
+          Explore approved books using the ratings and inventory values recorded in the catalogue.
         </p>
       </div>
 
@@ -112,9 +102,9 @@ export const PopularityHeatMapPage: React.FC = () => {
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="p-4 sm:p-5 border-b border-slate-100 flex items-center justify-between">
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
-            Circulation Matrix ({filteredBooks.length} Titles)
+            Catalogue Matrix ({filteredBooks.length} Titles)
           </h3>
-          <span className="text-xs text-slate-500">Live RFID circulation readings</span>
+          <span className="text-xs text-slate-500">Live catalogue records</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -123,15 +113,16 @@ export const PopularityHeatMapPage: React.FC = () => {
               <tr>
                 <th className="py-3 px-4 font-semibold">Title & Author</th>
                 <th className="py-3 px-4 font-semibold">Category</th>
-                <th className="py-3 px-4 font-semibold">Popularity Index</th>
+                <th className="py-3 px-4 font-semibold">Online Rating</th>
                 <th className="py-3 px-4 font-semibold">Copies Available</th>
-                <th className="py-3 px-4 font-semibold">Heat Status</th>
+                <th className="py-3 px-4 font-semibold">Rating Status</th>
                 <th className="py-3 px-4 font-semibold text-right">Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredBooks.map((book) => {
-                const heat = getHeatBadge((book.onlineRating ?? 0) * 20);
+                const rating = book.onlineRating ?? 0;
+                const heat = getHeatBadge(rating * 20);
                 return (
                   <tr key={book.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3.5 px-4 font-medium text-slate-900">
