@@ -39,16 +39,16 @@ export const BookExchangePage: React.FC = () => {
     return matchesQuery && matchesCondition;
   });
 
-  const handleCreateListing = (e: React.FormEvent) => {
+  const handleCreateListing = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newTitle.trim() || !newAuthor.trim()) return;
 
-    addExchangeListing({
+    await addExchangeListing({
       title: newTitle,
       author: newAuthor,
       category: newCategory,
       condition: newCondition,
-      description: newDescription || 'Standard textbook ready for semester exchange.'
+      description: newDescription.trim() || 'No description provided.'
     });
 
     setNewTitle('');
@@ -78,7 +78,7 @@ export const BookExchangePage: React.FC = () => {
             <ArrowLeftRight className="w-5 h-5 text-blue-600" />
           </h1>
           <p className="text-xs text-slate-500 mt-1">
-            Trade prescribed semester textbooks, lab guides, and reference material directly with peers.
+            List a physical engineering book you own and request books offered by other students.
           </p>
         </div>
 
@@ -162,7 +162,7 @@ export const BookExchangePage: React.FC = () => {
 
               {item.status === 'Available' ? (
                 <button
-                  onClick={() => requestExchange(item.id)}
+                  onClick={() => void requestExchange(item.id)}
                   className="py-1.5 px-3 rounded-lg bg-blue-950 text-white hover:bg-blue-900 text-xs font-semibold flex items-center gap-1"
                 >
                   <ArrowLeftRight className="w-3 h-3" />
