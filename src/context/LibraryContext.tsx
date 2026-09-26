@@ -338,11 +338,7 @@ export const LibraryProvider:
 
 
   const [wishlist, setWishlist] =
-    useState<string[]>([
-      'b-7',
-      'b-8',
-      'b-24'
-    ]);
+    useState<string[]>([]);
 
 
   const [reservations, setReservations] =
