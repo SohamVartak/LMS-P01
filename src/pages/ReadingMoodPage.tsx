@@ -18,74 +18,20 @@ export const ReadingMoodPage: React.FC = () => {
   const [selectedMoodId, setSelectedMoodId] = useState<string>('curious');
 
   const moods: MoodOption[] = [
-    {
-      id: 'happy',
-      emoji: '😊',
-      label: 'Happy & Joyful',
-      subtitle: 'Lighthearted inspiration and uplifting narratives',
-      color: 'hover:border-amber-400 bg-amber-50/40',
-      recommendedBookIds: ['b-13', 'b-14', 'b-10'] // Ikigai, Alchemist, Python
-    },
-    {
-      id: 'calm',
-      emoji: '😌',
-      label: 'Calm & Mindful',
-      subtitle: 'Serene prose and philosophical grounding',
-      color: 'hover:border-teal-400 bg-teal-50/40',
-      recommendedBookIds: ['b-13', 'b-12', 'b-16'] // Ikigai, Psychology of Money, Mockingbird
-    },
-    {
-      id: 'motivated',
-      emoji: '🔥',
-      label: 'Motivated & Driven',
-      subtitle: 'Habit mastery, discipline, and execution',
-      color: 'hover:border-orange-400 bg-orange-50/40',
-      recommendedBookIds: ['b-11', 'b-30', 'b-1'] // Atomic Habits, Think & Grow Rich, Clean Code
-    },
-    {
-      id: 'curious',
-      emoji: '🧠',
-      label: 'Curious & Inquisitive',
-      subtitle: 'System internals, science, and the cosmos',
-      color: 'hover:border-blue-400 bg-blue-50/40',
-      recommendedBookIds: ['b-21', 'b-22', 'b-4', 'b-29'] // Sapiens, Brief History, DBMS, DDIA
-    },
-    {
-      id: 'emotional',
-      emoji: '❤️',
-      label: 'Emotional & Empathetic',
-      subtitle: 'Deep human connection and classic literature',
-      color: 'hover:border-rose-400 bg-rose-50/40',
-      recommendedBookIds: ['b-16', 'b-14', 'b-17'] // Mockingbird, Alchemist, Gatsby
-    },
-    {
-      id: 'relaxed',
-      emoji: '😴',
-      label: 'Relaxed & Unhurried',
-      subtitle: 'Gentle pacing without heavy cognitive load',
-      color: 'hover:border-indigo-400 bg-indigo-50/40',
-      recommendedBookIds: ['b-14', 'b-28', 'b-12'] // Alchemist, Head First Java, Psych of Money
-    },
-    {
-      id: 'ambitious',
-      emoji: '🚀',
-      label: 'Ambitious & Bold',
-      subtitle: 'Startups, venture scale, and tech disruption',
-      color: 'hover:border-purple-400 bg-purple-50/40',
-      recommendedBookIds: ['b-19', 'b-20', 'b-18', 'b-7'] // Zero to One, Lean Startup, Rich Dad, AI
-    },
-    {
-      id: 'melancholic',
-      emoji: '🌧️',
-      label: 'Melancholic & Reflective',
-      subtitle: 'Profound dystopias and moral inquiry',
-      color: 'hover:border-slate-400 bg-slate-100/50',
-      recommendedBookIds: ['b-15', 'b-17', 'b-23'] // 1984, Great Gatsby, Selfish Gene
-    }
+    { id:'focused', emoji:'🎯', label:'Focused', subtitle:'Structured technical learning', color:'hover:border-blue-400 bg-blue-50/40' },
+    { id:'curious', emoji:'🧠', label:'Curious', subtitle:'Explore a new engineering topic', color:'hover:border-indigo-400 bg-indigo-50/40' },
+    { id:'motivated', emoji:'🔥', label:'Motivated', subtitle:'Build practical technical skills', color:'hover:border-orange-400 bg-orange-50/40' },
+    { id:'exploring', emoji:'🔎', label:'Exploring', subtitle:'Discover something outside your usual area', color:'hover:border-teal-400 bg-teal-50/40' }
   ];
 
   const currentMood = moods.find(m => m.id === selectedMoodId) || moods[3];
-  const matchedBooks = books.filter(b => currentMood.recommendedBookIds.includes(b.id));
+  const matchedBooks = books.filter(b => {
+    const text = `${b.category} ${b.title} ${b.description}`.toLowerCase();
+    if (selectedMoodId === 'focused') return /computer|software|algorithm|engineering|systems/.test(text);
+    if (selectedMoodId === 'curious') return /artificial|science|computer|electronics|signals/.test(text);
+    if (selectedMoodId === 'motivated') return /software|engineering|embedded|design|machine/.test(text);
+    return true;
+  }).slice(0, 8);
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
