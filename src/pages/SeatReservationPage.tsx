@@ -89,7 +89,7 @@ export const SeatReservationPage: React.FC = () => {
       if (auth.user && auth.user.id) {
         await supabase.from('library_presence').upsert({
           user_id: auth.user.id,
-          table_number: selectedSeatNumber.replace(/^F\\d-/, ''),
+          table_number: selectedSeatNumber.replace(/^F\d-/, ''),
           activity: libraryActivity,
           status: 'IN_LIBRARY',
           updated_at: new Date().toISOString()
