@@ -2,7 +2,7 @@ import React from 'react';
 import { Book } from '../../types';
 import { useLibrary } from '../../context/LibraryContext';
 import { BookSpineCover } from './BookSpineCover';
-import { Star, Clock, Bookmark, BookOpen, TrendingUp } from 'lucide-react';
+import { Star, Bookmark, BookOpen } from 'lucide-react';
 
 interface BookCardProps {
   book: Book;
@@ -98,16 +98,9 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onOpenDetails }) => {
             by <span className="font-medium text-[var(--app-text)]">{book.author}</span>
           </p>
 
-          {/* Metadata row: reading time and popularity */}
           <div className="mt-3 pt-2 border-t border-[var(--app-border)] flex items-center justify-between text-[11px] text-[var(--app-text-muted)]">
-            <div className="flex items-center gap-1">
-              <Clock className="w-3 h-3 opacity-60" />
-              <span>~{book.readingTimeHours}h read</span>
-            </div>
-            <div className="flex items-center gap-1 font-tabular">
-              <TrendingUp className="w-3 h-3 text-[var(--app-accent)]" />
-              <span>{book.popularityScore}% Pop.</span>
-            </div>
+            <span>{book.totalCopies} total copies</span>
+            <span>{book.publicationYear || 'Year not recorded'}</span>
           </div>
         </div>
 
