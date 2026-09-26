@@ -24,11 +24,52 @@ export const BookDetailModal: React.FC = () => {
     toggleWishlist, 
     wishlist, 
     setCurrentPage, 
-    books, 
-    openBookModal 
+    books,
+    openBookModal,
+    user,
+    userRole,
+    addToast
   } = useLibrary();
 
   const [activeTab, setActiveTab] = useState<'overview' | 'summary' | 'similar'>('overview');
+  const [studentRating, setStudentRating] = useState(0);
+  const [savingRating, setSavingRating] = useState(false);
+
+  const submitStudentRating = async () => {
+    if (userRole !== 'STUDENT' || !user.id || studentRating < 1) return;
+
+    setSavingRating(true);
+
+    const { error } = await import('../../lib/supabase').then(({ supabase }) =>
+      supabase.from('book_student_ratings').upsert(
+        {
+          book_id: book.id,
+          student_id: user.id,
+          rating: studentRating
+        },
+        { onConflict: 'book_id,student_id' }
+      )
+    );
+
+    if (error) {
+      addToast('Rating Failed', error.message, 'error');
+    } else {
+      addToast('Rating Saved', 'Your student rating has been recorded.', 'success');
+      const { supabase } = await import('../../lib/supabase');
+      const { data } = await supabase
+        .from('book_rating_summary')
+        .select('student_rating, student_rating_count')
+        .eq('book_id', book.id)
+        .maybeSingle();
+
+      if (data) {
+        book.studentRating = data.student_rating == null ? null : Number(data.student_rating);
+        book.studentRatingCount = Number(data.student_rating_count || 0);
+      }
+    }
+
+    setSavingRating(false);
+  };
 
   if (!selectedBookModal) return null;
 
@@ -138,6 +179,36 @@ export const BookDetailModal: React.FC = () => {
                   <span>{book.publisher}</span>
                 </div>
               </div>
+
+              {userRole === 'STUDENT' && (
+                <div className="mb-4 p-3 rounded-xl border border-[var(--app-border)] bg-[var(--app-surface-subtle)]">
+                  <div className="text-xs font-semibold text-[var(--app-text)] mb-2">Your student rating</div>
+                  <div className="flex items-center gap-2">
+                    {[1,2,3,4,5].map(value => (
+                      <button
+                        key={value}
+                        type="button"
+                        onClick={() => setStudentRating(value)}
+                        className="p-1"
+                        aria-label={`Rate ${value} out of 5`}
+                      >
+                        <Star className={`w-5 h-5 ${value <= studentRating ? 'fill-emerald-500 text-emerald-500' : 'text-slate-300'}`} />
+                      </button>
+                    ))}
+                    <button
+                      type="button"
+                      disabled={savingRating || studentRating < 1}
+                      onClick={() => void submitStudentRating()}
+                      className="ml-2 px-3 py-1.5 rounded-lg bg-[var(--app-accent)] text-xs font-semibold disabled:opacity-50"
+                    >
+                      {savingRating ? 'Saving...' : 'Submit'}
+                    </button>
+                  </div>
+                  <div className="text-[11px] text-[var(--app-text-muted)] mt-1">
+                    {book.studentRatingCount} student rating{book.studentRatingCount === 1 ? '' : 's'} · average {book.studentRating == null ? '—' : book.studentRating.toFixed(1)}/5
+                  </div>
+                </div>
+              )}
 
               {/* Sub-Navigation tabs */}
               <div className="flex items-center gap-2 border-b border-[var(--app-border)] mb-4">
