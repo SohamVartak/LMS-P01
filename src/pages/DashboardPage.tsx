@@ -181,7 +181,7 @@ export const DashboardPage: React.FC = () => {
             </span>
             <span className="text-[11px] text-[var(--app-text-muted)]">active issues</span>
           </div>
-          <p className="text-[11px] text-[var(--app-text-muted)] mt-1 font-tabular">Quota: {activeIssues.length} of 6 books</p>
+          <p className="text-[11px] text-[var(--app-text-muted)] mt-1 font-tabular">Active circulation records</p>
         </div>
 
         {/* Card 2: Books Completed */}
@@ -198,7 +198,7 @@ export const DashboardPage: React.FC = () => {
             </span>
             <span className="text-[11px] text-[var(--app-text-muted)]">completed</span>
           </div>
-          <p className="text-[11px] text-emerald-400 mt-1">+{completedCount} total completed</p>
+          <p className="text-[11px] text-[var(--app-text-muted)] mt-1">Recorded in your library history</p>
         </div>
 
         {/* Card 3: Reading Streak */}
@@ -211,7 +211,7 @@ export const DashboardPage: React.FC = () => {
           </div>
           <div className="mt-3 flex items-baseline gap-2">
             <span className="text-3xl font-bold font-tabular text-[var(--app-text)] transition-all duration-700">
-              {animatedStats.streak}
+              {user.readingStreak || 0}
             </span>
             <span className="text-[11px] text-amber-400 font-bold">active days</span>
           </div>
