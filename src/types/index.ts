@@ -23,6 +23,10 @@ export interface Book {
   author: string;
   category: BookCategory;
   description: string;
+  onlineRating: number | null;
+  onlineRatingCount: number;
+  studentRating: number | null;
+  studentRatingCount: number;
   rating: number;
   reviewsCount: number;
   pages: number;
