@@ -2227,71 +2227,48 @@ export const LibraryProvider:
      READING PROGRESS
      ======================================================= */
 
-  const updateReadingProgress = (
+  const updateReadingProgress = async (
     borrowRecordId: string,
     percent: number
   ) => {
+    const clamped = Math.min(100, Math.max(0, Math.round(percent)));
+    const record = borrowedBooks.find(b => b.id === borrowRecordId);
+    if (!record || !user.id) return;
 
-    const clamped =
-      Math.min(
-        100,
-        Math.max(
-          0,
-          Math.round(
-            percent
-          )
-        )
+    const pagesRead = Math.round((clamped / 100) * record.totalPages);
+
+    const { error } = await supabase
+      .from('reading_progress')
+      .upsert(
+        {
+          user_id: user.id,
+          borrow_record_id: borrowRecordId,
+          progress_percent: clamped,
+          pages_read: pagesRead,
+          updated_at: new Date().toISOString()
+        },
+        { onConflict: 'user_id,borrow_record_id' }
       );
 
+    if (error) {
+      addToast('Reading Progress Failed', error.message, 'error');
+      return;
+    }
 
-    setBorrowedBooks(
-      prev =>
-        prev.map(
-          b => {
+    const newStatus =
+      clamped === 100
+        ? 'Completed'
+        : clamped > 0
+          ? 'Currently Reading'
+          : 'Borrowed';
 
-            if (
-              b.id !==
-              borrowRecordId
-            ) {
-
-              return b;
-            }
-
-
-            const pagesRead =
-              Math.round(
-                (clamped /
-                  100) *
-                  b.totalPages
-              );
-
-
-            const newStatus =
-              clamped ===
-              100
-                ? 'Completed'
-                : clamped >
-                    0
-                ? 'Currently Reading'
-                : 'Borrowed';
-
-
-            return {
-
-              ...b,
-
-              progressPercent:
-                clamped,
-
-              pagesRead,
-
-              status:
-                newStatus
-            };
-          }
-        )
+    setBorrowedBooks(prev =>
+      prev.map(b =>
+        b.id === borrowRecordId
+          ? { ...b, progressPercent: clamped, pagesRead, status: newStatus }
+          : b
+      )
     );
-
 
     addToast(
       'Reading Progress Saved',
