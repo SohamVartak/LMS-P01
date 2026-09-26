@@ -445,6 +445,7 @@ export const LibraryProvider: React.FC<{
    */
   useEffect(() => {
     let mounted = true;
+    let initializing = true;
 
     const loadProfile = async (userId: string) => {
       const { data, error } = await supabase
@@ -518,10 +519,36 @@ export const LibraryProvider: React.FC<{
       }
     };
 
-    // IMPORTANT: clear any persisted Supabase session BEFORE registering
-    // the auth listener. This prevents the startup SIGNED_OUT event from
-    // arriving after a fresh login and throwing the user back to portal
-    // selection.
+
+    /*
+     * Register the listener BEFORE clearing any old Supabase session.
+     *
+     * authLoading stays true during this startup step, so the login form
+     * cannot be submitted while the startup sign-out is still running.
+     * The SIGNED_OUT event caused by startup cleanup is ignored as a
+     * navigation event. After initialization finishes, a real SIGNED_IN
+     * event loads the profile and opens the selected portal.
+     */
+    const { data: listener } = supabase.auth.onAuthStateChange(
+      (event, session) => {
+        if (!mounted) return;
+
+        if (event === 'SIGNED_IN' && session?.user) {
+          void loadProfile(session.user.id);
+          return;
+        }
+
+        if (event === 'SIGNED_OUT' && !initializing) {
+          setIsLoggedIn(false);
+          setUserRole(null);
+          setActivePortal(null);
+          requestedPortalRef.current = null;
+          setCurrentPageState('dashboard');
+          setAuthLoading(false);
+        }
+      }
+    );
+
     const initializeAuth = async () => {
       await supabase.auth.signOut();
 
@@ -532,38 +559,16 @@ export const LibraryProvider: React.FC<{
       setActivePortal(null);
       requestedPortalRef.current = null;
       setCurrentPageState('dashboard');
+
+      initializing = false;
       setAuthLoading(false);
-
-      const { data: listener } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-          if (!mounted) return;
-
-          if (event === 'SIGNED_OUT') {
-            setIsLoggedIn(false);
-            setUserRole(null);
-            setActivePortal(null);
-            requestedPortalRef.current = null;
-            setCurrentPageState('dashboard');
-            setAuthLoading(false);
-            return;
-          }
-
-          if (event === 'SIGNED_IN' && session?.user) {
-            void loadProfile(session.user.id);
-          }
-        }
-      );
-
-      // Store the subscription for cleanup.
-      cleanupSubscription = () => listener.subscription.unsubscribe();
     };
 
-    let cleanupSubscription: (() => void) | null = null;
     void initializeAuth();
 
     return () => {
       mounted = false;
-      cleanupSubscription?.();
+      listener.subscription.unsubscribe();
     };
   }, []);
   /*
