@@ -139,7 +139,7 @@ export const ProfilePage: React.FC = () => {
           <UserCheck className="w-6 h-6 text-[var(--app-accent)]" />
         </h1>
         <p className="text-xs text-[var(--app-text-muted)] mt-1">
-          Review your institutional library credentials, digital circulation card, reading activity, and reading theme.
+          Review your recorded library profile, circulation activity, and reading theme.
         </p>
       </div>
 
@@ -186,7 +186,7 @@ export const ProfilePage: React.FC = () => {
                 <span className="font-mono text-[11px] text-[var(--app-text)] tracking-wider">Student ID: {user.studentId || 'Not recorded'}</span>
               </div>
               <span className="text-[10px] font-bold text-emerald-400 bg-emerald-950/70 px-2 py-0.5 rounded border border-emerald-500/40">
-                ACTIVE &bull; CLEAR
+                LIBRARY ACCOUNT
               </span>
             </div>
           </div>
@@ -230,7 +230,7 @@ export const ProfilePage: React.FC = () => {
                   Background Color Combination
                 </h3>
                 <p className="text-xs text-[var(--app-text-muted)]">
-                  Select your preferred background palette to eliminate sterile white glare.
+                  Select a saved background palette for your library workspace.
                 </p>
               </div>
             </div>
