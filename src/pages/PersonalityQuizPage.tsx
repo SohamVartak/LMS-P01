@@ -1,282 +1,149 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useLibrary } from '../context/LibraryContext';
-import { BookSpineCover } from '../components/common/BookSpineCover';
-import { 
-  HelpCircle, 
-  ArrowRight, 
-  ArrowLeft, 
-  RotateCcw, 
-  Sparkles, 
-  CheckCircle2, 
-  BookOpen, 
-  Award 
-} from 'lucide-react';
+import { Book } from '../types';
+import { ArrowLeft, ArrowRight, BookOpen, CheckCircle2, RotateCcw } from 'lucide-react';
 
-const buildQuestions = (book: any) => [
+interface QuizQuestion {
+  question: string;
+  options: string[];
+  answer: string;
+}
+
+const makeQuestions = (book: Book): QuizQuestion[] => [
   {
-    question: `Which author is associated with “${book.title}”?`,
-    options: [book.author, 'Martin Fowler', 'Andrew S. Tanenbaum', 'Robert C. Martin']
+    question: `Who is the recorded author of “${book.title}”?`,
+    options: [book.author, 'Thomas H. Cormen', 'Ian Sommerville', 'S. Haykin'],
+    answer: book.author
   },
   {
-    question: `Which category is this book listed under?`,
-    options: [book.category, 'Civil Engineering', 'Mechanical Engineering', 'Electrical Engineering'].sort(() => 0.5 - Math.random())
+    question: `Which category is “${book.title}” listed under?`,
+    options: [book.category, 'Mechanical Engineering', 'Civil Engineering', 'Electrical Engineering'],
+    answer: book.category
   },
   {
-    question: `What is the publication year recorded for “${book.title}”?`,
-    options: [String(book.publicationYear), '2010', '2015', '2020'].sort(() => 0.5 - Math.random())
+    question: `Which publication year is recorded for “${book.title}”?`,
+    options: [String(book.publicationYear), '2010', '2015', '2020'],
+    answer: String(book.publicationYear)
   },
   {
-    question: `Which title did you choose for this quiz?`,
-    options: [book.title, 'Clean Code', 'Digital Design', 'Signals and Systems'].sort(() => 0.5 - Math.random())
+    question: `Which title did you select for this quiz?`,
+    options: [book.title, 'Clean Code', 'Digital Design', 'Signals and Systems'],
+    answer: book.title
   },
   {
-    question: `Who wrote “${book.title}”?`,
-    options: [book.author, 'Thomas H. Cormen', 'Ian Sommerville', 'S. Haykin'].sort(() => 0.5 - Math.random())
+    question: `What publisher is recorded for “${book.title}”?`,
+    options: [book.publisher || 'Publisher not recorded', 'Pearson', 'McGraw-Hill', 'Wiley'],
+    answer: book.publisher || 'Publisher not recorded'
   }
 ];
 
 export const PersonalityQuizPage: React.FC = () => {
   const { books, openBookModal, borrowBook } = useLibrary();
-  const [bookQuery, setBookQuery] = useState('');
+  const [query, setQuery] = useState('');
   const [selectedBookId, setSelectedBookId] = useState('');
-  const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
-  const [quizAnswers, setQuizAnswers] = useState<Record<number,string>>({});
-
-  const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [quizCompleted, setQuizCompleted] = useState(false);
-  const [quizScore, setQuizScore] = useState(0);
+  const [questions, setQuestions] = useState<QuizQuestion[]>([]);
+  const [index, setIndex] = useState(0);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [finished, setFinished] = useState(false);
+  const [score, setScore] = useState(0);
 
   const selectedBook = books.find(b => b.id === selectedBookId);
-  const currentQ = quizQuestions[currentQuestionIndex];
-  const progressPercent = quizQuestions.length ? Math.round(((currentQuestionIndex + 1) / quizQuestions.length) * 100) : 0;
+  const matches = useMemo(
+    () => books.filter(b => !query || b.title.toLowerCase().includes(query.toLowerCase())),
+    [books, query]
+  );
+  const current = questions[index];
 
   const startQuiz = () => {
     if (!selectedBook) return;
-    setQuizQuestions(buildQuestions(selectedBook));
-    setQuizAnswers({});
-    setCurrentQuestionIndex(0);
-    setQuizCompleted(false);
-    setQuizScore(0);
+    setQuestions(makeQuestions(selectedBook));
+    setAnswers({});
+    setIndex(0);
+    setFinished(false);
+    setScore(0);
   };
 
-  const handleSelectOption = (answer: string) => setQuizAnswers(prev => ({ ...prev, [currentQuestionIndex]: answer }));
+  const choose = (answer: string) => setAnswers(prev => ({ ...prev, [index]: answer }));
 
-  const handleNext = () => {
-    if (!currentQ || !quizAnswers[currentQuestionIndex]) return;
-    if (currentQuestionIndex < quizQuestions.length - 1) {
-      setCurrentQuestionIndex(prev => prev + 1);
-    } else {
-      let score = 0;
-      quizQuestions.forEach((q, index) => {
-        if (quizAnswers[index] === q.options[0]) score += 1;
-      });
-      setQuizScore(score);
-      setQuizCompleted(true);
+  const next = () => {
+    if (!current || !answers[index]) return;
+    if (index < questions.length - 1) {
+      setIndex(v => v + 1);
+      return;
     }
+    const finalScore = questions.reduce((total, q, i) => total + (answers[i] === q.answer ? 1 : 0), 0);
+    setScore(finalScore);
+    setFinished(true);
   };
 
-  const handlePrevious = () => {
-    if (currentQuestionIndex > 0) setCurrentQuestionIndex(prev => prev - 1);
+  const reset = () => {
+    setQuestions([]);
+    setAnswers({});
+    setIndex(0);
+    setFinished(false);
+    setScore(0);
   };
-
-  const handleRetake = () => {
-    setQuizAnswers({});
-    setCurrentQuestionIndex(0);
-    setQuizCompleted(false);
-    setQuizScore(0);
-  };
-
-  const startingBook = selectedBook;
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto animate-in fade-in duration-300">
-      
-      {/* Header */}
+    <div className="space-y-8 max-w-4xl mx-auto">
       <div className="text-center pb-4 border-b border-slate-200">
-        <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">
-          Psychometric Reading Profiler
-        </span>
-        <h1 className="text-2xl sm:text-3xl font-bold font-serif-academic text-slate-900 tracking-tight mt-0.5 flex items-center justify-center gap-2">
-          <span>Discover Your Reading Personality</span>
-          <span className="text-2xl">📖</span>
-        </h1>
-        <p className="text-xs text-slate-500 mt-1 max-w-lg mx-auto">
-          Enter a book name, then answer questions based on that book's catalogue information.
-        </p>
+        <span className="text-xs font-semibold text-blue-700 uppercase tracking-wider">Book Quiz</span>
+        <h1 className="text-2xl sm:text-3xl font-bold font-serif-academic text-slate-900 mt-1">Quiz Me on a Book</h1>
+        <p className="text-xs text-slate-500 mt-1">Enter a book name, select the catalogue title, and get questions based on that book's recorded information.</p>
       </div>
-      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Enter a book name</label>
-        <input value={bookQuery} onChange={e=>setBookQuery(e.target.value)} placeholder="Search the approved engineering catalogue..." className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
-        <select value={selectedBookId} onChange={e=>setSelectedBookId(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white">
-          <option value="">Select a matching book</option>
-          {books.filter(b => !bookQuery || b.title.toLowerCase().includes(bookQuery.toLowerCase())).map(b=><option key={b.id} value={b.id}>{b.title} — {b.author}</option>)}
+
+      <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-xs space-y-3">
+        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Book name</label>
+        <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Type a book title..." className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+        <select value={selectedBookId} onChange={e => setSelectedBookId(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 bg-white text-sm">
+          <option value="">Select a book</option>
+          {matches.map(book => <option key={book.id} value={book.id}>{book.title} — {book.author}</option>)}
         </select>
-        <button disabled={!selectedBook} onClick={startQuiz} className="px-5 py-2.5 rounded-xl bg-blue-950 text-white text-xs font-semibold disabled:bg-slate-200 disabled:text-slate-400">Generate Book Quiz</button>
+        <button onClick={startQuiz} disabled={!selectedBook} className="px-5 py-2.5 rounded-xl bg-blue-950 text-white text-xs font-semibold disabled:bg-slate-200 disabled:text-slate-400">
+          Generate Book Quiz
+        </button>
       </div>
 
-
-      {!selectedBookId || !quizQuestions.length ? (
-        /* Quiz Interface */
-        <div className="bg-white p-6 sm:p-10 rounded-2xl border border-slate-200/80 shadow-xs space-y-8">
-          
-          {/* Progress Bar & Question Counter */}
-          <div className="space-y-2">
-            <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
-              <span>Question {currentQuestionIndex + 1} of {QUIZ_QUESTIONS.length}</span>
-              <span className="text-blue-700 font-tabular">{progressPercent}% Completed</span>
-            </div>
-            <div className="w-full bg-slate-100 rounded-full h-2 overflow-hidden">
-              <div 
-                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
-              />
-            </div>
+      {questions.length > 0 && !finished && current && (
+        <div className="bg-white p-6 sm:p-10 rounded-2xl border border-slate-200 shadow-xs space-y-7">
+          <div className="flex items-center justify-between text-xs font-semibold text-slate-600">
+            <span>Question {index + 1} of {questions.length}</span>
+            <span>{Math.round(((index + 1) / questions.length) * 100)}%</span>
           </div>
-
-          {/* Question Text */}
-          <div>
-            <h2 className="text-lg sm:text-xl font-bold font-serif-academic text-slate-900 leading-snug">
-              {currentQ.question}
-            </h2>
+          <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+            <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${((index + 1) / questions.length) * 100}%` }} />
           </div>
-
-          {/* Options Grid */}
+          <h2 className="text-lg font-bold font-serif-academic text-slate-900">{current.question}</h2>
           <div className="space-y-3">
-            {currentQ.options.map((option, idx) => {
-              const isSelected = selectedAnswers[currentQuestionIndex] === option.personality;
-              return (
-                <button
-                  key={idx}
-                  onClick={() => handleSelectOption(option)}
-                  className={`w-full p-4 rounded-xl border text-left transition-all duration-200 flex items-center justify-between gap-4 ${
-                    isSelected
-                      ? 'border-blue-900 bg-blue-50/50 ring-2 ring-blue-900 text-slate-900 font-semibold'
-                      : 'border-slate-200 hover:border-slate-300 hover:bg-slate-50 text-slate-700'
-                  }`}
-                >
-                  <span className="text-xs sm:text-sm leading-relaxed">{option.text}</span>
-                  <div className={`w-5 h-5 rounded-full border flex items-center justify-center shrink-0 ${
-                    isSelected ? 'border-blue-900 bg-blue-900 text-white' : 'border-slate-300'
-                  }`}>
-                    {isSelected && <CheckCircle2 className="w-3.5 h-3.5" />}
-                  </div>
-                </button>
-              );
-            })}
-          </div>
-
-          {/* Footer Navigation Buttons */}
-          <div className="pt-4 border-t border-slate-100 flex items-center justify-between">
-            <button
-              onClick={handlePrevious}
-              disabled={currentQuestionIndex === 0}
-              className={`py-2 px-4 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
-                currentQuestionIndex === 0
-                  ? 'border-slate-200 text-slate-300 cursor-not-allowed'
-                  : 'border-slate-300 text-slate-700 hover:bg-slate-50'
-              }`}
-            >
-              <ArrowLeft className="w-3.5 h-3.5" />
-              <span>Previous</span>
-            </button>
-
-            <button
-              onClick={handleNext}
-              disabled={!selectedAnswers[currentQuestionIndex]}
-              className={`py-2.5 px-6 rounded-xl text-xs font-semibold flex items-center gap-2 transition-all shadow-xs ${
-                selectedAnswers[currentQuestionIndex]
-                  ? 'bg-blue-950 text-white hover:bg-blue-900'
-                  : 'bg-slate-200 text-slate-400 cursor-not-allowed'
-              }`}
-            >
-              <span>{currentQuestionIndex === QUIZ_QUESTIONS.length - 1 ? 'Reveal Archetype' : 'Next Question'}</span>
-              <ArrowRight className="w-3.5 h-3.5" />
-            </button>
-          </div>
-
-        </div>
-      ) : (
-        /* Result Reveal Card */
-        <div className="bg-white p-6 sm:p-10 rounded-2xl border border-slate-200 shadow-lg space-y-8 animate-in zoom-in-95 duration-300">
-          
-          <div className="text-center space-y-2">
-            <span className="text-4xl">{result?.badge}</span>
-            <div className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-900 text-xs font-bold uppercase tracking-wider mt-2">
-              Your Book Quiz Result
-            </div>
-            <h2 className="text-2xl sm:text-3xl font-extrabold font-serif-academic text-slate-900">
-              {selectedBook?.title}
-            </h2>
-            <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
-              {selectedBook ? `You scored ${quizScore} / ${quizQuestions.length} on this book quiz.` : ''}
-            </p>
-          </div>
-
-          <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 text-center text-sm text-slate-700">
-            Score: <strong>{quizScore} / {quizQuestions.length}</strong>
-          </div>
-
-          {/* Recommended Starting Book */}
-          {startingBook && (
-            <div className="p-5 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-3">
-              <div className="flex items-center justify-between">
-                <span className="text-xs font-bold text-blue-950 uppercase tracking-wider">
-                  Catalogue Book for Your Result
+            {current.options.map(option => (
+              <button key={option} onClick={() => choose(option)}
+                className={`w-full p-4 rounded-xl border text-left text-sm ${answers[index] === option ? 'border-blue-900 bg-blue-50 ring-2 ring-blue-900' : 'border-slate-200 hover:bg-slate-50'}`}>
+                <span className="flex items-center justify-between gap-3">
+                  {option}
+                  {answers[index] === option && <CheckCircle2 className="w-4 h-4 text-blue-700 shrink-0" />}
                 </span>
-                <span className="text-xs font-semibold text-blue-700">Current Catalogue</span>
-              </div>
-
-              <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-xl border border-blue-100">
-                <div 
-                  onClick={() => openBookModal(startingBook)}
-                  className="cursor-pointer shrink-0"
-                >
-                  <BookSpineCover book={startingBook} size="sm" />
-                </div>
-                <div className="flex-1 min-w-0 text-center sm:text-left">
-                  <h4 
-                    onClick={() => openBookModal(startingBook)}
-                    className="text-sm font-bold text-slate-900 hover:text-blue-700 cursor-pointer"
-                  >
-                    {startingBook.title}
-                  </h4>
-                  <p className="text-xs text-slate-500">by {startingBook.author}</p>
-                  <p className="text-xs text-slate-600 mt-2 line-clamp-2">
-                    {startingBook.description}
-                  </p>
-                </div>
-                <div className="flex flex-col gap-2 shrink-0 w-full sm:w-auto">
-                  <button
-                    onClick={() => openBookModal(startingBook)}
-                    className="py-1.5 px-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold"
-                  >
-                    Examine
-                  </button>
-                  <button
-                    onClick={() => borrowBook(startingBook.id)}
-                    className="py-1.5 px-3 rounded-lg bg-blue-950 text-white hover:bg-blue-900 text-xs font-semibold"
-                  >
-                    Issue Copy
-                  </button>
-                </div>
-              </div>
-            </div>
-          )}
-
-          {/* Retake Button */}
-          <div className="pt-2 text-center">
-            <button
-              onClick={handleRetake}
-              className="py-2 px-5 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold inline-flex items-center gap-2"
-            >
-              <RotateCcw className="w-3.5 h-3.5" />
-              <span>Retake Reader Personality Quiz</span>
-            </button>
+              </button>
+            ))}
           </div>
-
+          <div className="flex justify-between pt-3 border-t border-slate-100">
+            <button onClick={() => setIndex(v => Math.max(0, v - 1))} disabled={index === 0} className="px-4 py-2 rounded-lg border text-xs disabled:opacity-40 flex items-center gap-1"><ArrowLeft className="w-4 h-4" />Previous</button>
+            <button onClick={next} disabled={!answers[index]} className="px-5 py-2 rounded-lg bg-blue-950 text-white text-xs disabled:bg-slate-200 disabled:text-slate-400 flex items-center gap-1">{index === questions.length - 1 ? 'Finish Quiz' : 'Next'}<ArrowRight className="w-4 h-4" /></button>
+          </div>
         </div>
       )}
 
+      {finished && selectedBook && (
+        <div className="bg-white p-8 rounded-2xl border border-slate-200 shadow-xs text-center space-y-5">
+          <CheckCircle2 className="w-12 h-12 text-emerald-600 mx-auto" />
+          <h2 className="text-2xl font-bold font-serif-academic">{selectedBook.title}</h2>
+          <p className="text-sm text-slate-600">Your score: <strong>{score} / {questions.length}</strong></p>
+          <div className="flex justify-center gap-2">
+            <button onClick={() => openBookModal(selectedBook)} className="px-4 py-2 rounded-lg border text-xs font-semibold flex items-center gap-2"><BookOpen className="w-4 h-4" />View Book</button>
+            <button onClick={() => void borrowBook(selectedBook.id)} className="px-4 py-2 rounded-lg bg-blue-950 text-white text-xs font-semibold">Issue Copy</button>
+            <button onClick={reset} className="px-4 py-2 rounded-lg border text-xs font-semibold flex items-center gap-2"><RotateCcw className="w-4 h-4" />Retake</button>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
