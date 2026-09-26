@@ -538,12 +538,9 @@ export const LibraryProvider: React.FC<{
         );
       }
 
-      if (data.session) {
-        await loadProfile(
-          data.session.user.id
-        );
-      }
-
+      // Do not automatically restore an existing Supabase session on app startup.
+      // The user must sign in through the login page each time the app is opened.
+      // We still listen for sign-in/sign-out events after the app is running.
       if (mounted) {
         setAuthLoading(false);
       }
