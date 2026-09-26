@@ -50,6 +50,96 @@ alter table public.books add column if not exists ai_summary text;
 alter table public.books add column if not exists ai_status text not null default 'PENDING';
 alter table public.books add column if not exists submitted_at timestamptz not null default now();
 alter table public.books add column if not exists cover_url text;
+alter table public.books add column if not exists online_rating numeric(2,1);
+alter table public.books add column if not exists online_rating_count integer not null default 0;
+alter table public.books add column if not exists online_rating_source text;
+alter table public.books add column if not exists condition_set_by uuid references auth.users(id) on delete set null;
+alter table public.books add column if not exists condition_set_at timestamptz;
+
+create table if not exists public.book_student_ratings (
+  id uuid primary key default gen_random_uuid(),
+  book_id uuid not null references public.books(id) on delete cascade,
+  student_id uuid not null references auth.users(id) on delete cascade,
+  rating numeric(2,1) not null check (rating >= 1 and rating <= 5),
+  review text default '',
+  created_at timestamptz not null default now(),
+  updated_at timestamptz not null default now(),
+  unique(book_id, student_id)
+);
+
+create index if not exists book_student_ratings_book_idx on public.book_student_ratings(book_id);
+create index if not exists book_student_ratings_student_idx on public.book_student_ratings(student_id);
+
+alter table public.book_student_ratings enable row level security;
+
+drop policy if exists "Students can view book ratings" on public.book_student_ratings;
+create policy "Students can view book ratings"
+on public.book_student_ratings for select to authenticated
+using (true);
+
+drop policy if exists "Students can rate books" on public.book_student_ratings;
+create policy "Students can rate books"
+on public.book_student_ratings for insert to authenticated
+with check (
+  public.current_app_role() = 'STUDENT'
+  and student_id = auth.uid()
+);
+
+drop policy if exists "Students can update their ratings" on public.book_student_ratings;
+create policy "Students can update their ratings"
+on public.book_student_ratings for update to authenticated
+using (student_id = auth.uid() and public.current_app_role() = 'STUDENT')
+with check (student_id = auth.uid() and public.current_app_role() = 'STUDENT');
+
+drop policy if exists "Students can delete their ratings" on public.book_student_ratings;
+create policy "Students can delete their ratings"
+on public.book_student_ratings for delete to authenticated
+using (student_id = auth.uid() and public.current_app_role() = 'STUDENT');
+
+create or replace function public.set_book_condition(
+  p_book_id uuid,
+  p_condition text,
+  p_notes text default ''
+)
+returns public.books
+language plpgsql
+security definer
+set search_path = public
+as $
+declare
+  result public.books;
+begin
+  if public.current_app_role() <> 'AUTHOR' then
+    raise exception 'Only an author can set book condition';
+  end if;
+
+  if not exists (
+    select 1 from public.books
+    where id = p_book_id and author_id = auth.uid()
+  ) then
+    raise exception 'You can only set condition for your own books';
+  end if;
+
+  if p_condition not in ('Excellent','Good','Needs Attention','Damaged') then
+    raise exception 'Invalid book condition';
+  end if;
+
+  update public.books
+  set condition = p_condition,
+      condition_notes = coalesce(p_notes, ''),
+      condition_set_by = auth.uid(),
+      condition_set_at = now(),
+      updated_at = now()
+  where id = p_book_id
+  returning * into result;
+
+  return result;
+end;
+$;
+
+revoke all on function public.set_book_condition(uuid,text,text) from public;
+grant execute on function public.set_book_condition(uuid,text,text) to authenticated;
+
 
 do $
 begin
