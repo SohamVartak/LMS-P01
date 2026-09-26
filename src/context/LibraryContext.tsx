@@ -813,6 +813,57 @@ export const LibraryProvider:
 
 
     /* -------------------------------------------------------
+       WISHLIST
+       ------------------------------------------------------- */
+    const { data: dbWishlist, error: wishlistError } = await supabase
+      .from('wishlist')
+      .select('book_id')
+      .eq('user_id', userId);
+
+    if (!wishlistError) {
+      setWishlist((dbWishlist || []).map((row: any) => row.book_id));
+    }
+
+    /* -------------------------------------------------------
+       READING PROGRESS
+       ------------------------------------------------------- */
+    const { data: dbProgress, error: progressError } = await supabase
+      .from('reading_progress')
+      .select('borrow_record_id, progress_percent, pages_read')
+      .eq('user_id', userId);
+
+    if (!progressError && dbProgress) {
+      const progressMap = new Map(
+        dbProgress.map((row: any) => [
+          row.borrow_record_id,
+          {
+            percent: Number(row.progress_percent || 0),
+            pages: Number(row.pages_read || 0)
+          }
+        ])
+      );
+
+      setBorrowedBooks(prev =>
+        prev.map(record => {
+          const progress = progressMap.get(record.id);
+          if (!progress) return record;
+
+          return {
+            ...record,
+            progressPercent: progress.percent,
+            pagesRead: progress.pages,
+            status:
+              progress.percent === 100
+                ? 'Completed'
+                : progress.percent > 0
+                  ? 'Currently Reading'
+                  : record.status
+          };
+        })
+      );
+    }
+
+    /* -------------------------------------------------------
        NOTIFICATIONS
        ------------------------------------------------------- */
 
@@ -1018,6 +1069,7 @@ export const LibraryProvider:
             'books'
           )
           .select('*')
+          .eq('approval_status', 'APPROVED')
           .order(
             'title',
             {
@@ -2069,7 +2121,54 @@ export const LibraryProvider:
      WISHLIST
      ======================================================= */
 
-  const toggleWishlist = (
+  const toggleWishlist = async (
+    bookId: string
+  ) => {
+    if (!user.id) return;
+
+    const exists = wishlist.includes(bookId);
+
+    if (exists) {
+      const { error } = await supabase
+        .from('wishlist')
+        .delete()
+        .eq('user_id', user.id)
+        .eq('book_id', bookId);
+
+      if (error) {
+        addToast('Wishlist Update Failed', error.message, 'error');
+        return;
+      }
+
+      setWishlist(prev => prev.filter(id => id !== bookId));
+    } else {
+      const { error } = await supabase
+        .from('wishlist')
+        .insert({ user_id: user.id, book_id: bookId });
+
+      if (error) {
+        addToast('Wishlist Update Failed', error.message, 'error');
+        return;
+      }
+
+      setWishlist(prev => [...prev, bookId]);
+    }
+
+    const targetBook = books.find(b => b.id === bookId);
+    addToast(
+      exists ? 'Removed from Wishlist' : 'Added to Wishlist',
+      `"${targetBook?.title || 'Book'}" ${exists ? 'removed from' : 'saved to'} your reading wishlist.`,
+      'success'
+    );
+  };
+
+  /* =======================================================
+     LEGACY WISHLIST HANDLER
+     =======================================================
+     The previous local-only implementation is intentionally removed.
+     */ 
+
+  const toggleWishlistLegacy = (
     bookId: string
   ) => {
 
