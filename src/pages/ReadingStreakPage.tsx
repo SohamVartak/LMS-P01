@@ -59,49 +59,11 @@ export const ReadingStreakPage: React.FC = () => {
   };
 
   const badges = [
-    {
-      id: 'b-1',
-      title: '3-Day Reader',
-      tier: 'Bronze',
-      unlocked: true,
-      icon: '🥉',
-      desc: 'Sustained reading habit for 3 continuous days.'
-    },
-    {
-      id: 'b-2',
-      title: '7-Day Scholar',
-      tier: 'Silver',
-      unlocked: true,
-      icon: '🥈',
-      desc: 'Achieved a whole week of daily engineering study.'
-    },
-    {
-      id: 'b-3',
-      title: '14-Day Bookworm',
-      tier: 'Gold',
-      unlocked: false,
-      icon: '🥇',
-      desc: 'Read for 14 continuous days without dropping session.'
-    },
-    {
-      id: 'b-4',
-      title: '30-Day Master',
-      tier: 'Platinum',
-      unlocked: false,
-      icon: '🏆',
-      desc: 'One full month of unbroken academic reading streak.'
-    }
+    { id: 'b-1', title: '3-Day Reader', tier: 'Bronze', unlocked: currentStreak >= 3, icon: '🥉', desc: 'Sustained reading activity for 3 continuous days.' },
+    { id: 'b-2', title: '7-Day Scholar', tier: 'Silver', unlocked: currentStreak >= 7, icon: '🥈', desc: 'Recorded activity for 7 continuous days.' },
+    { id: 'b-3', title: '14-Day Bookworm', tier: 'Gold', unlocked: currentStreak >= 14, icon: '🥇', desc: 'Recorded activity for 14 continuous days.' },
+    { id: 'b-4', title: '30-Day Master', tier: 'Platinum', unlocked: currentStreak >= 30, icon: '🏆', desc: 'Recorded activity for 30 continuous days.' }
   ];
-
-  const handleLogPages = () => {
-    if (!loggedToday) {
-      setLoggedToday(true);
-      updateUserProfile({ readingStreak: user.readingStreak + 1 });
-      addToast('Streak Extended! 🔥', `Logged ${pagesToLog} pages today! Your streak is now ${user.readingStreak + 1} days!`, 'success');
-    } else {
-      addToast('Already Logged Today', `Great work! You already added ${pagesToLog} extra pages to your daily journal.`, 'info');
-    }
-  };
 
   return (
     <div className="space-y-8 animate-in fade-in duration-300">
@@ -116,7 +78,7 @@ export const ReadingStreakPage: React.FC = () => {
           <span className="text-2xl animate-flame">🔥</span>
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Build lasting academic discipline by reading at least 15-20 pages every single day.
+          Your streak is based on reading activity recorded by the library system.
         </p>
       </div>
 
