@@ -130,7 +130,7 @@ interface LibraryContextType {
 
   borrowBook: (
     bookId: string
-  ) => boolean;
+  ) => Promise<boolean>;
 
 
   reserveBook: (
@@ -145,7 +145,7 @@ interface LibraryContextType {
 
   returnBook: (
     borrowRecordId: string
-  ) => void;
+  ) => Promise<boolean>;
 
 
   toggleWishlist: (
@@ -165,19 +165,19 @@ interface LibraryContextType {
     date: string,
     timeSlot: string,
     section: string
-  ) => boolean;
+  ) => Promise<boolean>;
 
 
   cancelSeatReservation: (
     resId: string
-  ) => void;
+  ) => Promise<void>;
 
 
   updateBookCondition: (
     bookId: string,
     condition: BookCondition,
     notes?: string
-  ) => void;
+  ) => Promise<void>;
 
 
   addExchangeListing: (
@@ -185,15 +185,15 @@ interface LibraryContextType {
       title: string;
       author: string;
       category: string;
-      condition: BookCondition;
+      condition: BookCondition,
       description: string;
     }
-  ) => void;
+  ) => Promise<void>;
 
 
   requestExchange: (
     itemId: string
-  ) => void;
+  ) => Promise<void>;
 
 
   connectCompanion: (
