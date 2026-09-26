@@ -10,7 +10,6 @@ interface MoodOption {
   label: string;
   subtitle: string;
   color: string;
-  recommendedBookIds: string[];
 }
 
 export const ReadingMoodPage: React.FC = () => {
