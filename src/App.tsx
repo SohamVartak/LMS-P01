@@ -39,7 +39,7 @@ import { AdminPortalPage } from './pages/AdminPortalPage';
 const AppContent: React.FC = () => {
   const { isLoggedIn, authLoading, currentPage, theme, userRole, activePortal } = useLibrary();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [adminPage, setAdminPage] = useState<'home' | 'books' | 'circulation'>('home');
+  const [adminPage, setAdminPage] = useState<'home' | 'books' | 'circulation' | 'health'>('home');
 
   if (authLoading) {
     return <div data-theme={theme} className="min-h-screen flex items-center justify-center bg-[var(--app-canvas)] text-[var(--app-text)] text-sm">Loading library...</div>;
@@ -57,6 +57,7 @@ const AppContent: React.FC = () => {
   if (userRole === 'ADMIN' && activePortal === 'ADMIN') {
     if (adminPage === 'books') return <AdminBookManagementPage onOpenCirculation={() => setAdminPage('circulation')} />;
     if (adminPage === 'circulation') return <AdminCirculationPage onBack={() => setAdminPage('home')} />;
+    if (adminPage === 'health') return <BookHealthPage />;
     return <AdminPortalPage onOpenBooks={() => setAdminPage('books')} onOpenCirculation={() => setAdminPage('circulation')} />;
   }
 
