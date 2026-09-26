@@ -31,7 +31,11 @@ export const AdminBookManagementPage: React.FC<{ onOpenCirculation: () => void }
 
   const reviewSubmission = async (bookId: string, approved: boolean) => {
     setReviewing(true);
-    const { error } = await supabase.from('books').update({ approval_status: approved ? 'APPROVED' : 'REJECTED' }).eq('id', bookId).eq('approval_status','PENDING');
+    const { error } = await supabase.rpc('review_author_book', {
+      p_book_id: bookId,
+      p_approved: approved,
+      p_rejection_reason: approved ? null : 'Rejected by administrator'
+    });
     if (error) addToast('Review Failed', error.message, 'error');
     else addToast(approved ? 'Book Approved' : 'Book Rejected', approved ? 'The book is now visible in the student catalogue.' : 'The submission was rejected.', approved ? 'success' : 'warning');
     await loadPending(); await refreshBooks(); setReviewing(false);
