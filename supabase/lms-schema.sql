@@ -70,6 +70,14 @@ create table if not exists public.book_student_ratings (
 create index if not exists book_student_ratings_book_idx on public.book_student_ratings(book_id);
 create index if not exists book_student_ratings_student_idx on public.book_student_ratings(student_id);
 
+create or replace view public.book_rating_summary as
+select
+  book_id,
+  round(avg(rating), 1) as student_rating,
+  count(*)::integer as student_rating_count
+from public.book_student_ratings
+group by book_id;
+
 alter table public.book_student_ratings enable row level security;
 
 drop policy if exists "Students can view book ratings" on public.book_student_ratings;
