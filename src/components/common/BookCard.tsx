@@ -69,10 +69,18 @@ export const BookCard: React.FC<BookCardProps> = ({ book, onOpenDetails }) => {
             <span className="font-semibold text-[var(--app-accent)] truncate max-w-[130px] uppercase text-[10px] tracking-wider">
               {book.category}
             </span>
-            <div className="flex items-center gap-1 text-[var(--app-text)] shrink-0 font-tabular font-medium">
-              <Star className="w-3.5 h-3.5 fill-[var(--app-accent)] text-[var(--app-accent)]" />
-              <span className="font-bold">{book.rating.toFixed(1)}</span>
-              <span className="opacity-60 text-[10px]">({book.reviewsCount})</span>
+            <div className="flex items-center gap-2 text-[10px] text-[var(--app-text)] shrink-0 font-tabular font-medium">
+              <span className="inline-flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 fill-[var(--app-accent)] text-[var(--app-accent)]" />
+                <span className="font-bold">{book.onlineRating == null ? '—' : book.onlineRating.toFixed(1)}</span>
+                <span className="opacity-60">Online</span>
+              </span>
+              <span className="opacity-30">|</span>
+              <span className="inline-flex items-center gap-1">
+                <Star className="w-3.5 h-3.5 text-emerald-600" />
+                <span className="font-bold">{book.studentRating == null ? '—' : book.studentRating.toFixed(1)}</span>
+                <span className="opacity-60">Students</span>
+              </span>
             </div>
           </div>
 
