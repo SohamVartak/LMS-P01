@@ -15,10 +15,14 @@ import {
 export const AIBookSummaryPage: React.FC = () => {
   const { books, openBookModal, borrowBook, addToast } = useLibrary();
 
-  const [selectedBookId, setSelectedBookId] = useState<string>('b-1'); // Clean code by default
+  const [selectedBookId, setSelectedBookId] = useState<string>('');
   const [copied, setCopied] = useState<boolean>(false);
 
   const currentBook = books.find(b => b.id === selectedBookId) || books[0];
+
+  if (!currentBook) {
+    return <div className="p-8 text-sm text-slate-500">No approved books are currently available for AI summaries.</div>;
+  }
 
   const handleCopySummary = () => {
     const textToCopy = `AI Summary: ${currentBook.title} by ${currentBook.author}\n\n${currentBook.aiSummary.summary}\n\nKey Concepts:\n${currentBook.aiSummary.keyIdeas.map(idea => `• ${idea}`).join('\n')}`;
@@ -41,7 +45,7 @@ export const AIBookSummaryPage: React.FC = () => {
           <Sparkles className="w-6 h-6 text-amber-500" />
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Review condensed chapter syntheses, core theorems, and practical takeaways extracted from core academic textbooks.
+          Review the summary and key ideas stored for an approved engineering book.
         </p>
       </div>
 
@@ -97,7 +101,7 @@ export const AIBookSummaryPage: React.FC = () => {
             </div>
             <div className="flex justify-between font-tabular">
               <span>Reading Pace:</span>
-              <strong>~{currentBook.readingTimeHours} hours</strong>
+              <strong>Not recorded</strong>
             </div>
             <div className="flex justify-between font-tabular">
               <span>Copies Available:</span>
