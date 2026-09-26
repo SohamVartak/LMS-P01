@@ -4,7 +4,6 @@ import { BookSpineCover } from './BookSpineCover';
 import { 
   X, 
   Star, 
-  Clock, 
   MapPin, 
   Layers, 
   ShieldCheck, 
@@ -170,10 +169,6 @@ export const BookDetailModal: React.FC = () => {
                   <span className="text-slate-400 font-normal">Students</span>
                 </div>
               </div>
-                <div className="flex items-center gap-1 font-tabular">
-                  <Clock className="w-3.5 h-3.5 opacity-60" />
-                  <span>Estimated {book.readingTimeHours} hours ({book.pages} pages)</span>
-                </div>
                 <div className="flex items-center gap-1 font-tabular">
                   <Building className="w-3.5 h-3.5 opacity-60" />
                   <span>{book.publisher}</span>
