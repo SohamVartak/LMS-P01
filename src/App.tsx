@@ -34,11 +34,12 @@ import { NotificationsPage } from './pages/NotificationsPage';
 import { RoleHomePage } from './pages/RoleHomePage';
 import { AdminBookManagementPage } from './pages/AdminBookManagementPage';
 import { AdminCirculationPage } from './pages/AdminCirculationPage';
+import { AdminPortalPage } from './pages/AdminPortalPage';
 
 const AppContent: React.FC = () => {
   const { isLoggedIn, authLoading, currentPage, theme, userRole, activePortal } = useLibrary();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [adminPage, setAdminPage] = useState<'books' | 'circulation'>('books');
+  const [adminPage, setAdminPage] = useState<'home' | 'books' | 'circulation'>('home');
 
   if (authLoading) {
     return <div data-theme={theme} className="min-h-screen flex items-center justify-center bg-[var(--app-canvas)] text-[var(--app-text)] text-sm">Loading library...</div>;
@@ -54,9 +55,9 @@ const AppContent: React.FC = () => {
   }
 
   if (userRole === 'ADMIN' && activePortal === 'ADMIN') {
-    return adminPage === 'books'
-      ? <AdminBookManagementPage onOpenCirculation={() => setAdminPage('circulation')} />
-      : <AdminCirculationPage onBack={() => setAdminPage('books')} />;
+    if (adminPage === 'books') return <AdminBookManagementPage onOpenCirculation={() => setAdminPage('circulation')} />;
+    if (adminPage === 'circulation') return <AdminCirculationPage onBack={() => setAdminPage('home')} />;
+    return <AdminPortalPage onOpenBooks={() => setAdminPage('books')} onOpenCirculation={() => setAdminPage('circulation')} />;
   }
 
   if (activePortal === 'AUTHOR') {
