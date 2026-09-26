@@ -596,6 +596,42 @@ export const LibraryProvider:
   };
 
 
+  const loadStudentRatingSummary = async () => {
+    const { data, error } = await supabase
+      .from('book_rating_summary')
+      .select('book_id, student_rating, student_rating_count');
+
+    if (error) {
+      console.warn('Student rating summary could not be loaded:', error.message);
+      return new Map<string, { rating: number | null; count: number }>();
+    }
+
+    return new Map(
+      (data || []).map((row: any) => [
+        row.book_id,
+        {
+          rating: row.student_rating == null ? null : Number(row.student_rating),
+          count: Number(row.student_rating_count || 0)
+        }
+      ])
+    );
+  };
+
+  const mapBooksWithRatings = async (rows: any[]) => {
+    const ratings = await loadStudentRatingSummary();
+
+    return rows.map((row: any) => {
+      const mapped = mapDatabaseBook(row);
+      const summary = ratings.get(row.id);
+
+      return {
+        ...mapped,
+        studentRating: summary?.rating ?? null,
+        studentRatingCount: summary?.count ?? 0
+      };
+    });
+  };
+
   /* =======================================================
      LOAD STUDENT DATA
      ======================================================= */
@@ -635,11 +671,7 @@ export const LibraryProvider:
       dbBooks.length > 0
     ) {
 
-      const mappedBooks:
-        Book[] =
-        dbBooks.map(
-          mapDatabaseBook
-        );
+      const mappedBooks: Book[] = await mapBooksWithRatings(dbBooks);
 
       setBooks(
         mappedBooks
@@ -1004,11 +1036,7 @@ export const LibraryProvider:
 
       if (data) {
 
-        setBooks(
-          data.map(
-            mapDatabaseBook
-          )
-        );
+        setBooks(await mapBooksWithRatings(data));
       }
     };
 
