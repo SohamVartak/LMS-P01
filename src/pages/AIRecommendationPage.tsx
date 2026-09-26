@@ -14,7 +14,7 @@ export const AIRecommendationPage: React.FC = () => {
   const { books, openBookModal, borrowBook } = useLibrary();
 
   // Preferences state
-  const [selectedGenre, setSelectedGenre] = useState<string>('Programming');
+  const [selectedGenre, setSelectedGenre] = useState<string>('Computer Engineering');
   const [selectedLevel, setSelectedLevel] = useState<'Beginner' | 'Intermediate' | 'Advanced'>('Intermediate');
   const [selectedLength, setSelectedLength] = useState<'Short' | 'Medium' | 'Long'>('Medium');
   const [selectedGoal, setSelectedGoal] = useState<string>('Improve Skills');
@@ -23,13 +23,13 @@ export const AIRecommendationPage: React.FC = () => {
   const [recommendations, setRecommendations] = useState<RecommendedMatch[] | null>(null);
 
   const genres = [
-    'Programming',
-    'Fiction',
-    'Business',
-    'Psychology',
-    'Science',
-    'History',
-    'Self Improvement'
+    'Computer Science',
+    'Computer Engineering',
+    'Artificial Intelligence',
+    'Software Engineering',
+    'Electrical Engineering',
+    'Electronics & Communication',
+    'Mechanical Engineering'
   ];
 
   const levels: ('Beginner' | 'Intermediate' | 'Advanced')[] = [
@@ -46,61 +46,30 @@ export const AIRecommendationPage: React.FC = () => {
 
   const goals = [
     'Learn',
-    'Relax',
-    'Improve Skills',
-    'Explore',
-    'Entertainment'
+    'Build Skills',
+    'Prepare for Exams',
+    'Explore a Topic'
   ];
 
   const handleGenerate = () => {
     setIsGenerating(true);
     setRecommendations(null);
 
-    setTimeout(() => {
-      // Logic mapping genre & criteria to realistic books from the 30-book mock catalog
-      const matches: RecommendedMatch[] = [];
-
-      if (selectedGenre === 'Programming') {
-        const b1 = books.find(b => b.id === 'b-1'); // Clean Code
-        const b2 = books.find(b => b.id === 'b-29'); // DDIA
-        const b3 = books.find(b => b.id === 'b-2'); // Pragmatic Programmer
-        if (b1) matches.push({ book: b1, matchScore: 96, reason: 'Strong match for clean coding habits, engineering craftsmanship, and software architecture.' });
-        if (b2) matches.push({ book: b2, matchScore: 92, reason: 'Recommended because you requested intermediate/advanced systems design and high-throughput data engineering.' });
-        if (b3) matches.push({ book: b3, matchScore: 89, reason: 'Aligned with your goal to improve daily engineering discipline and technical pragmatism.' });
-      } else if (selectedGenre === 'Business') {
-        const b1 = books.find(b => b.id === 'b-12'); // Psychology of Money
-        const b2 = books.find(b => b.id === 'b-19'); // Zero to One
-        const b3 = books.find(b => b.id === 'b-20'); // Lean Startup
-        if (b1) matches.push({ book: b1, matchScore: 95, reason: 'Recommended because you selected behavioral finance and risk management with concise chapter lengths.' });
-        if (b2) matches.push({ book: b2, matchScore: 91, reason: 'High alignment with tech venture scalability, monopoly advantages, and technological innovation.' });
-        if (b3) matches.push({ book: b3, matchScore: 88, reason: 'Matches your goal to build rapid minimum viable products and validate customer feedback loops.' });
-      } else if (selectedGenre === 'Science' || selectedGenre === 'History') {
-        const b1 = books.find(b => b.id === 'b-21'); // Sapiens
-        const b2 = books.find(b => b.id === 'b-22'); // Brief History of Time
-        const b3 = books.find(b => b.id === 'b-23'); // Selfish Gene
-        if (b1) matches.push({ book: b1, matchScore: 97, reason: 'Synthesizes cognitive evolution, agricultural revolutions, and anthropological history.' });
-        if (b2) matches.push({ book: b2, matchScore: 93, reason: 'Clear non-technical exploration of spacetime curvature, black holes, and cosmology.' });
-        if (b3) matches.push({ book: b3, matchScore: 87, reason: 'Matches your curiosity for evolutionary game theory, genetics, and biological cooperation.' });
-      } else if (selectedGenre === 'Self Improvement' || selectedGenre === 'Psychology') {
-        const b1 = books.find(b => b.id === 'b-11'); // Atomic Habits
-        const b2 = books.find(b => b.id === 'b-13'); // Ikigai
-        const b3 = books.find(b => b.id === 'b-30'); // Think and Grow Rich
-        if (b1) matches.push({ book: b1, matchScore: 98, reason: 'Recommended because you want practical behavioral systems to engineer sustained daily study habits.' });
-        if (b2) matches.push({ book: b2, matchScore: 90, reason: 'Ideal for finding mindful balance between academic pressure, flow state, and purpose.' });
-        if (b3) matches.push({ book: b3, matchScore: 86, reason: 'Historical blueprint on building persistent focus and definitive goal planning.' });
-      } else {
-        // Fiction / Literature
-        const b1 = books.find(b => b.id === 'b-14'); // The Alchemist
-        const b2 = books.find(b => b.id === 'b-15'); // 1984
-        const b3 = books.find(b => b.id === 'b-16'); // To Kill a Mockingbird
-        if (b1) matches.push({ book: b1, matchScore: 94, reason: 'An inspiring allegorical quest matching your goal to relax and reflect on personal ambition.' });
-        if (b2) matches.push({ book: b2, matchScore: 91, reason: 'Chilling dystopian exploration of surveillance, truth, and psychological autonomy.' });
-        if (b3) matches.push({ book: b3, matchScore: 88, reason: 'Profound classic literature on empathy, human dignity, and moral integrity.' });
-      }
+    window.setTimeout(() => {
+      const normalized = selectedGenre.toLowerCase();
+      const matches = books
+        .filter(book => book.category.toLowerCase() === normalized)
+        .sort((x, y) => (y.studentRating ?? y.onlineRating ?? 0) - (x.studentRating ?? x.onlineRating ?? 0))
+        .slice(0, 3)
+        .map(book => ({
+          book,
+          matchScore: 0,
+          reason: `Catalogue match for ${selectedGenre}, with your selected ${selectedLevel.toLowerCase()} level and ${selectedLength.toLowerCase()} reading preference. Goal: ${selectedGoal}.`
+        }));
 
       setRecommendations(matches);
       setIsGenerating(false);
-    }, 700);
+    }, 300);
   };
 
   return (
@@ -116,7 +85,7 @@ export const AIRecommendationPage: React.FC = () => {
           <span className="text-xl">🤖</span>
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Tell us what you want to achieve today, and our contextual recommender will tailor the ideal academic text.
+          Choose your engineering area and preferences. Recommendations are generated from the current approved catalogue.
         </p>
       </div>
 
@@ -246,7 +215,7 @@ export const AIRecommendationPage: React.FC = () => {
               Tailored Advisor Recommendations
             </h2>
             <span className="text-xs text-slate-500 font-medium">
-              3 high-affinity matches calculated
+              Matches from the current engineering catalogue
             </span>
           </div>
 
@@ -261,7 +230,7 @@ export const AIRecommendationPage: React.FC = () => {
                   <div className="flex items-center justify-between mb-4">
                     <span className="px-2.5 py-1 rounded-full text-xs font-bold font-tabular bg-emerald-50 text-emerald-800 border border-emerald-200 flex items-center gap-1">
                       <Sparkles className="w-3.5 h-3.5 text-emerald-600" />
-                      <span>{rec.matchScore}% Match</span>
+                      <span>Catalogue Match</span>
                     </span>
                     <span className="text-[11px] text-slate-400">{rec.book.category}</span>
                   </div>
