@@ -9,7 +9,7 @@ type AuthorBook = {
 };
 
 export const RoleHomePage: React.FC = () => {
-  const { user, userRole, logout, addToast } = useLibrary();
+  const { user, userRole, activePortal, logout, addToast } = useLibrary();
   const [books, setBooks] = useState<AuthorBook[]>([]);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -18,7 +18,7 @@ export const RoleHomePage: React.FC = () => {
   const [pdfFile, setPdfFile] = useState<File | null>(null);
 
   const loadAuthorData = async () => {
-    if (userRole !== 'AUTHOR' || !user.id) return;
+    if (activePortal !== 'AUTHOR' || !user.id) return;
     setLoading(true);
     const { data, error } = await supabase.from('books')
       .select('id,title,isbn,category,total_copies,available_copies')
@@ -37,9 +37,9 @@ export const RoleHomePage: React.FC = () => {
     setLoading(false);
   };
 
-  useEffect(() => { void loadAuthorData(); }, [user.id, userRole]);
+  useEffect(() => { void loadAuthorData(); }, [user.id, activePortal]);
 
-  if (userRole !== 'AUTHOR') {
+  if (activePortal !== 'AUTHOR') {
     return (
       <div className="min-h-screen bg-[var(--app-canvas)] flex items-center justify-center p-4">
         <div className="w-full max-w-3xl bg-white rounded-2xl border border-slate-200 shadow-xl p-8">
