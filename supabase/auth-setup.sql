@@ -28,6 +28,17 @@ alter table public.profiles add column if not exists approval_status text not nu
 alter table public.profiles add column if not exists approval_note text;
 update public.profiles p set email = coalesce(u.email, '') from auth.users u where u.id = p.id and (p.email is null or p.email = '');
 update public.profiles set approval_status = 'APPROVED' where approval_status is null;
+do $
+begin
+  if not exists (
+    select 1 from pg_constraint
+    where conname = 'profiles_approval_status_check'
+      and conrelid = 'public.profiles'::regclass
+  ) then
+    alter table public.profiles add constraint profiles_approval_status_check check (approval_status in ('PENDING','APPROVED','REJECTED'));
+  end if;
+end $;
+
 
 drop policy if exists "Users can view their own profile" on public.profiles;
 create policy "Users can view their own profile"
