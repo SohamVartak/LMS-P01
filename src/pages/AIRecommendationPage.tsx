@@ -67,7 +67,7 @@ export const AIRecommendationPage: React.FC = () => {
           reason: `Catalogue match for ${selectedGenre}, with your selected ${selectedLevel.toLowerCase()} level and ${selectedLength.toLowerCase()} reading preference. Goal: ${selectedGoal}.`
         }));
 
-      setRecommendations(matches);
+      setRecommendations(matches.length ? matches : []);
       setIsGenerating(false);
     }, 300);
   };
@@ -219,6 +219,9 @@ export const AIRecommendationPage: React.FC = () => {
             </span>
           </div>
 
+          {recommendations.length === 0 ? (
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 text-sm text-slate-600">No approved books are currently available in this category.</div>
+          ) : (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {recommendations.map((rec) => (
               <div
@@ -253,8 +256,8 @@ export const AIRecommendationPage: React.FC = () => {
                       <p className="text-xs text-slate-500 mt-0.5">by {rec.book.author}</p>
                       <div className="flex items-center gap-1 text-xs text-amber-600 mt-2 font-tabular">
                         <Star className="w-3.5 h-3.5 fill-amber-400" />
-                        <span className="font-semibold">{rec.book.rating}</span>
-                        <span className="text-slate-400 text-[10px]">({rec.book.reviewsCount})</span>
+                        <span className="font-semibold">{rec.book.onlineRating ?? rec.book.studentRating ?? 'Not rated'}</span>
+                        <span className="text-slate-400 text-[10px]">({rec.book.onlineRatingCount + rec.book.studentRatingCount} ratings)</span>
                       </div>
                     </div>
                   </div>
@@ -285,6 +288,7 @@ export const AIRecommendationPage: React.FC = () => {
               </div>
             ))}
           </div>
+          )}
         </div>
       )}
 
