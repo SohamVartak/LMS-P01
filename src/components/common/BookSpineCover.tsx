@@ -3,7 +3,7 @@ import { Book } from '../../types';
 import { BookOpen, Bookmark } from 'lucide-react';
 
 interface BookSpineCoverProps {
-  book: Pick<Book, 'title' | 'author' | 'category' | 'coverGradient' | 'coverAccent'>;
+  book: Pick<Book, 'title' | 'author' | 'category' | 'coverUrl' | 'coverGradient' | 'coverAccent'>;
   size?: 'sm' | 'md' | 'lg' | 'xl';
   showSpineShadow?: boolean;
 }
@@ -27,6 +27,16 @@ export const BookSpineCover: React.FC<BookSpineCoverProps> = ({
         boxShadow: 'inset 4px 0 8px rgba(0, 0, 0, 0.45), 2px 4px 12px rgba(0, 0, 0, 0.4)'
       }}
     >
+      {book.coverUrl && (
+        <img
+          src={book.coverUrl}
+          alt={book.title}
+          className="absolute inset-0 w-full h-full object-cover"
+          loading="lazy"
+          onError={(e) => { e.currentTarget.style.display = 'none'; }}
+        />
+      )}
+
       {/* Book Spine crease effect on left */}
       <div className="absolute left-0 top-0 bottom-0 w-2.5 bg-gradient-to-r from-black/50 via-white/10 to-transparent pointer-events-none" />
       
