@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { useLibrary } from '../context/LibraryContext';
-import { QUIZ_QUESTIONS, PERSONALITY_RESULTS } from '../data/mockData';
 import { BookSpineCover } from '../components/common/BookSpineCover';
 import { PersonalityResult } from '../types';
 import { 
@@ -13,6 +12,14 @@ import {
   BookOpen, 
   Award 
 } from 'lucide-react';
+
+const QUIZ_QUESTIONS = [
+  { question: 'Which library activity sounds most useful?', options: [{text:'Understand algorithms and data structures',personality:'The Analyst'},{text:'Build and debug software systems',personality:'The Builder'},{text:'Study circuits, processors, and embedded systems',personality:'The Engineer'},{text:'Explore AI and machine learning concepts',personality:'The Explorer'}] },
+  { question: 'How do you prefer to learn?', options: [{text:'Step-by-step theory and proofs',personality:'The Analyst'},{text:'Hands-on implementation',personality:'The Builder'},{text:'Diagrams, hardware, and system behavior',personality:'The Engineer'},{text:'Compare ideas across different fields',personality:'The Explorer'}] },
+  { question: 'What would you most likely do with a new technical book?', options: [{text:'Work through the concepts carefully',personality:'The Analyst'},{text:'Code along with the examples',personality:'The Builder'},{text:'Connect it to real hardware or architecture',personality:'The Engineer'},{text:'Jump between chapters and related topics',personality:'The Explorer'}] },
+  { question: 'What kind of project interests you most?', options: [{text:'An algorithmic problem solver',personality:'The Analyst'},{text:'A complete software application',personality:'The Builder'},{text:'A processor, embedded, or electronics project',personality:'The Engineer'},{text:'An AI experiment or research prototype',personality:'The Explorer'}] },
+  { question: 'What is your main reason for using the library?', options: [{text:'Master fundamentals',personality:'The Analyst'},{text:'Improve practical skills',personality:'The Builder'},{text:'Understand how engineered systems work',personality:'The Engineer'},{text:'Discover new technical areas',personality:'The Explorer'}] }
+];
 
 export const PersonalityQuizPage: React.FC = () => {
   const { books, openBookModal, borrowBook } = useLibrary();
@@ -52,7 +59,13 @@ export const PersonalityQuizPage: React.FC = () => {
         }
       });
 
-      const matchedResult = PERSONALITY_RESULTS[bestPers] || PERSONALITY_RESULTS['The Thinker'];
+      const resultMap: Record<string, PersonalityResult> = {
+        'The Analyst': { title:'The Analyst', badge:'🧠', description:'You prefer structured reasoning and strong fundamentals.', strengths:['Logical analysis','Conceptual depth','Careful study'], recommendedBookIds:[] },
+        'The Builder': { title:'The Builder', badge:'🛠️', description:'You prefer learning by creating and implementing.', strengths:['Practical learning','Problem solving','Implementation'], recommendedBookIds:[] },
+        'The Engineer': { title:'The Engineer', badge:'⚙️', description:'You enjoy understanding how technical systems work together.', strengths:['Systems thinking','Engineering reasoning','Applied learning'], recommendedBookIds:[] },
+        'The Explorer': { title:'The Explorer', badge:'🔎', description:'You enjoy discovering connections across technical fields.', strengths:['Curiosity','Cross-disciplinary thinking','Exploration'], recommendedBookIds:[] }
+      };
+      const matchedResult = resultMap[bestPers] || resultMap['The Analyst'];
       setResult(matchedResult);
       setQuizCompleted(true);
     }
@@ -213,7 +226,7 @@ export const PersonalityQuizPage: React.FC = () => {
                 <span>Recommended Catalogue References</span>
               </h3>
               <p className="text-xs text-slate-600 leading-relaxed">
-                Your profile demonstrates high aptitude for foundational algorithms, distributed data design, and deep system architecture.
+                Your result is based only on the answers you selected in this session. Catalogue suggestions use the current engineering collection.
               </p>
             </div>
           </div>
@@ -223,9 +236,9 @@ export const PersonalityQuizPage: React.FC = () => {
             <div className="p-5 bg-blue-50/60 rounded-2xl border border-blue-100 space-y-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs font-bold text-blue-950 uppercase tracking-wider">
-                  Recommended Masterwork for Your Archetype
+                  Catalogue Book for Your Result
                 </span>
-                <span className="text-xs font-semibold text-blue-700">Highest Affinity</span>
+                <span className="text-xs font-semibold text-blue-700">Current Catalogue</span>
               </div>
 
               <div className="flex flex-col sm:flex-row items-center gap-4 bg-white p-4 rounded-xl border border-blue-100">
