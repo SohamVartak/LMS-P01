@@ -523,7 +523,7 @@ export const LibraryProvider: React.FC<{
         'dashboard'
       );
 
-      if (data.role === 'STUDENT') {
+      if (data.role === 'STUDENT' || requestedPortalRef.current === 'STUDENT') {
         void loadStudentData(userId);
       }
     };
@@ -587,7 +587,7 @@ export const LibraryProvider: React.FC<{
     page: NavigationPage
   ) => {
     if (
-      userRole !== 'STUDENT' &&
+      activePortal !== 'STUDENT' &&
       page !== 'dashboard'
     ) {
       setCurrentPageState(
@@ -2250,13 +2250,8 @@ export const LibraryProvider: React.FC<{
       'dashboard'
     );
 
-    if (
-      profile.role ===
-      'STUDENT'
-    ) {
-      void loadStudentData(
-        data.user.id
-      );
+    if (expectedRole === 'STUDENT' || profile.role === 'STUDENT') {
+      void loadStudentData(data.user.id);
     }
 
     setAuthError('');
