@@ -16,7 +16,6 @@ import {
 export const SmartShelfPage: React.FC = () => {
   const { shelves, books, openBookModal, borrowBook, addToast } = useLibrary();
   const [selectedShelfCode, setSelectedShelfCode] = useState<string>('');
-  const [isScanning, setIsScanning] = useState<boolean>(false);
   const [scanSuccess, setScanSuccess] = useState<string | null>(null);
 
   const currentShelf = shelves.find(s => s.code === selectedShelfCode) || shelves[0];
@@ -25,15 +24,9 @@ export const SmartShelfPage: React.FC = () => {
   // Filter books matching current shelf
   const shelfBooks = books.filter(b => b.category === currentShelf.category);
 
-  const handleSimulateScan = () => {
-    setIsScanning(true);
-    setScanSuccess(null);
-
-    setTimeout(() => {
-      setIsScanning(false);
-      setScanSuccess(`Shelf ${currentShelf.code} selected.`);
-      addToast('Shelf QR Scanned', `Shelf record: ${currentShelf.code} (${currentShelf.category})`, 'success');
-    }, 1200);
+  const handleShelfSelect = () => {
+    setScanSuccess(`Shelf ${currentShelf.code} selected from the configured shelf records.`);
+    addToast('Shelf Selected', `Shelf ${currentShelf.code} · ${currentShelf.category}`, 'success');
   };
 
   return (
@@ -49,7 +42,7 @@ export const SmartShelfPage: React.FC = () => {
           <QrCode className="w-6 h-6 text-blue-600" />
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Locate physical books in SIT Central Library stacks using shelf codes, real-time inventory counts, and QR tag scanning.
+          Locate physical books in SIT Central Library stacks using configured shelf codes and current catalogue inventory.
         </p>
       </div>
 
@@ -127,15 +120,15 @@ export const SmartShelfPage: React.FC = () => {
           </div>
         </div>
 
-        {/* Right: QR Code Laser Sweep Scanner Simulator */}
+        {/* Right: Configured shelf locator */}
         <div className="bg-slate-900 text-white p-6 rounded-2xl border border-slate-800 shadow-md flex flex-col items-center justify-between text-center relative overflow-hidden">
           
           <div className="space-y-1">
             <h3 className="text-xs font-bold tracking-wider uppercase text-blue-300">
-              NFC / QR Tag Scanner
+              Shelf Locator
             </h3>
             <p className="text-[11px] text-slate-400">
-              Scan barcode on Shelf {currentShelf.code}
+              Use the configured shelf record below
             </p>
           </div>
 
@@ -156,12 +149,11 @@ export const SmartShelfPage: React.FC = () => {
             </div>
           ) : (
             <button
-              onClick={handleSimulateScan}
-              disabled={isScanning}
+              onClick={handleShelfSelect}
               className="w-full py-2 px-4 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold text-xs transition-colors flex items-center justify-center gap-2 shadow-xs"
             >
               <ScanLine className="w-4 h-4" />
-              <span>{isScanning ? 'Reading Optical Tag...' : 'Scan Shelf Tag'}</span>
+              <span>Select Shelf Record</span>
             </button>
           )}
 
@@ -175,7 +167,7 @@ export const SmartShelfPage: React.FC = () => {
           <h3 className="text-base font-bold text-slate-900 font-serif-academic">
             Books Located on Shelf {currentShelf.code} ({shelfBooks.length})
           </h3>
-          <span className="text-xs text-slate-500">Sorted by Dewey Decimal Shelf Index</span>
+          <span className="text-xs text-slate-500">Current approved catalogue records</span>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
