@@ -104,13 +104,15 @@ export const SeatReservationPage: React.FC = () => {
 
   const handleBooking = async () => {
     if (selectedSeatNumber && currentSelectedSeat) {
-      void reserveSeat(
+      const success = await reserveSeat(
         selectedFloor,
         selectedSeatNumber,
         selectedDate,
         selectedTimeSlot,
         currentSelectedSeat.section
       );
+      if (!success) return;
+      setSelectedSeatNumber(null);
       const { data: auth } = await supabase.auth.getUser();
       if (auth.user && auth.user.id) {
         await supabase.from('library_presence').upsert({
