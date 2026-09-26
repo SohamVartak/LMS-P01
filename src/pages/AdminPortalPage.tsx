@@ -181,7 +181,7 @@ export const AdminPortalPage: React.FC<Props> = ({ onOpenBooks, onOpenCirculatio
         {section === 'students' && (
           <section className="bg-white rounded-2xl border overflow-hidden">
             <div className="p-5 border-b"><h2 className="text-xl font-bold">Student Registration & Records</h2><p className="text-sm text-slate-500 mt-1">Approve registrations, then see their Gmail, student details and borrowed books.</p></div>
-            <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-slate-50"><tr>{['Student','Email','Student ID','Department / Year','Registration','Books'].map(x=><th key={x} className="text-left px-4 py-3">{x}</th>)}</tr></thead><tbody>
+            <div className="overflow-x-auto"><table className="w-full text-sm"><thead className="bg-slate-50"><tr>{['Student','Student ID','Department / Year','Registration','Books'].map(x=><th key={x} className="text-left px-4 py-3">{x}</th>)}</tr></thead><tbody>
               {students.map(s => {
                 const records = borrowed.filter(b => b.student_id === s.id && b.status !== 'RETURNED');
                 return <tr key={s.id} className="border-t">
