@@ -489,6 +489,10 @@ export const LibraryProvider:
         b.author_name ||
         'Unknown Author',
 
+      authorId:
+        b.author_id ||
+        undefined,
+
       category:
         (b.category ||
           'Computer Science') as Book['category'],
