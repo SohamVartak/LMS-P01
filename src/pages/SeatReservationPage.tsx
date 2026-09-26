@@ -218,7 +218,7 @@ export const SeatReservationPage: React.FC = () => {
               <h2 className="text-sm font-bold text-[#1E293B] uppercase tracking-wider">
                 Floor {selectedFloor} Interactive Floorplan
               </h2>
-              <p className="text-xs text-slate-500">Click any green carrel to select and review amenities</p>
+              <p className="text-xs text-slate-500">Click an available seat to select it</p>
             </div>
 
             {/* Legend */}
@@ -281,8 +281,7 @@ export const SeatReservationPage: React.FC = () => {
                   <Armchair className="w-5 h-5 opacity-90 my-auto" />
 
                   <div className="w-full flex items-center justify-center gap-1 text-[9px] opacity-75">
-                    {seat.hasPower && <Zap className="w-2.5 h-2.5" />}
-                    {seat.isWindow && <Sun className="w-2.5 h-2.5 text-[#F97316]" />}
+                    {seat.seatType === 'POWER' && <Zap className="w-2.5 h-2.5" />}
                   </div>
                 </button>
               );
@@ -332,11 +331,11 @@ export const SeatReservationPage: React.FC = () => {
               <div className="pt-2 border-t border-slate-200 space-y-2 text-xs text-slate-600">
                 <div className="flex items-center gap-2">
                   <Zap className="w-3.5 h-3.5 text-[#4C1D95]" />
-                  <span>230V AC Power Socket {currentSelectedSeat?.hasPower ? 'Available' : 'Nearby'}</span>
+                  <span>Seat type: {currentSelectedSeat?.seatType || 'Standard'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Sun className="w-3.5 h-3.5 text-[#F97316]" />
-                  <span>{currentSelectedSeat?.isWindow ? 'Direct Window Natural Light' : 'Dual LED Task Lamp'}</span>
+                  <span>{currentSelectedSeat?.section || 'Library seat'}</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <Volume2 className="w-3.5 h-3.5 text-slate-500" />
