@@ -497,11 +497,23 @@ export const LibraryProvider:
         b.description ||
         '',
 
-      rating:
+      onlineRating:
+        b.online_rating == null ? null : Number(b.online_rating),
+
+      onlineRatingCount:
+        Number(b.online_rating_count || 0),
+
+      studentRating:
+        null,
+
+      studentRatingCount:
         0,
 
+      rating:
+        b.online_rating == null ? 0 : Number(b.online_rating),
+
       reviewsCount:
-        0,
+        Number(b.online_rating_count || 0),
 
       pages:
         0,
@@ -2343,49 +2355,53 @@ export const LibraryProvider:
      BOOK CONDITION
      ======================================================= */
 
-  const updateBookCondition = (
+  const updateBookCondition = async (
     bookId: string,
     condition: BookCondition,
     notes?: string
   ) => {
+    if (userRole !== 'AUTHOR' || !user.id) {
+      addToast(
+        'Author Access Required',
+        'Only the author assigned to a book can set its condition.',
+        'warning'
+      );
+      return false;
+    }
 
-    const today =
-      new Date()
-        .toISOString()
-        .split(
-          'T'
-        )[0];
+    const { data, error } = await supabase.rpc('set_book_condition', {
+      p_book_id: bookId,
+      p_condition: condition,
+      p_notes: notes || ''
+    });
 
+    if (error) {
+      addToast('Condition Update Failed', error.message, 'error');
+      return false;
+    }
 
-    setBooks(
-      prev =>
-        prev.map(
-          b =>
-            b.id ===
-            bookId
-              ? {
+    const updated = Array.isArray(data) ? data[0] : data;
+    const today = new Date().toISOString().split('T')[0];
 
-                  ...b,
-
-                  condition,
-
-                  conditionNotes:
-                    notes ||
-                    b.conditionNotes,
-
-                  lastCheckedDate:
-                    today
-                }
-              : b
-        )
+    setBooks(prev =>
+      prev.map(b =>
+        b.id === bookId
+          ? {
+              ...b,
+              condition,
+              conditionNotes: notes || '',
+              lastCheckedDate: today
+            }
+          : b
+      )
     );
-
 
     addToast(
       'Condition Updated',
-      `Book condition logged as "${condition}" in library health register ✓`,
+      `Book condition logged as "${condition}".`,
       'success'
     );
+    return Boolean(updated);
   };
 
 
