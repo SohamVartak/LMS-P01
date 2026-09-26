@@ -18,23 +18,9 @@ export const PopularityHeatMapPage: React.FC = () => {
   const [selectedDept, setSelectedDept] = useState<string>('All');
   const [searchQuery, setSearchQuery] = useState<string>('');
 
-  const departments = [
-    'All',
-    'Computer Science & Eng',
-    'AI & Data Science',
-    'Mathematics & Theory',
-    'Business & Innovation',
-    'Literature & Humanities'
-  ];
+  const departments = ['All', ...Array.from(new Set(books.map(book => book.category)))];
 
-  // Map category to department
-  const getDept = (category: string) => {
-    if (category === 'Computer Science' || category === 'Software Engineering') return 'Computer Science & Eng';
-    if (category === 'Artificial Intelligence') return 'AI & Data Science';
-    if (category === 'Mathematics' || category === 'Science & Physics') return 'Mathematics & Theory';
-    if (category === 'Finance & Business' || category === 'Self-Improvement') return 'Business & Innovation';
-    return 'Literature & Humanities';
-  };
+  const getDept = (category: string) => category;
 
   const filteredBooks = books
     .filter(b => {
@@ -43,7 +29,7 @@ export const PopularityHeatMapPage: React.FC = () => {
       const matchesQuery = !searchQuery || b.title.toLowerCase().includes(searchQuery.toLowerCase()) || b.author.toLowerCase().includes(searchQuery.toLowerCase());
       return matchesDept && matchesQuery;
     })
-    .sort((a, b) => b.popularityScore - a.popularityScore);
+    .sort((a, b) => (b.onlineRating ?? 0) - (a.onlineRating ?? 0));
 
   const getHeatBadge = (score: number) => {
     if (score >= 90) {
@@ -85,47 +71,15 @@ export const PopularityHeatMapPage: React.FC = () => {
           <BarChart3 className="w-6 h-6 text-blue-600" />
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Monitor real-time student checkout velocity, textbook demand hotspots, and stack utilization rates across SIT departments.
+          Explore the current approved catalogue using live inventory and available rating data. No synthetic popularity scores are used.
         </p>
       </div>
 
-      {/* Top Department Analytics Cards */}
+      {/* Live catalogue summary */}
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs font-semibold text-slate-500">Highest Circulation Stack</span>
-          <h3 className="text-lg font-bold text-slate-900 mt-1">Computer Science & Algorithms</h3>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
-            <span>Utilization Rate:</span>
-            <span className="font-bold text-rose-600 font-tabular">94.2%</span>
-          </div>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1.5">
-            <div className="bg-rose-500 h-1.5 rounded-full" style={{ width: '94.2%' }} />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs font-semibold text-slate-500">Fastest Turning Over Titles</span>
-          <h3 className="text-lg font-bold text-slate-900 mt-1">AI & Autonomous Agents</h3>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
-            <span>Utilization Rate:</span>
-            <span className="font-bold text-orange-600 font-tabular">88.7%</span>
-          </div>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1.5">
-            <div className="bg-orange-500 h-1.5 rounded-full" style={{ width: '88.7%' }} />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs">
-          <span className="text-xs font-semibold text-slate-500">Active Campus Reservations</span>
-          <h3 className="text-lg font-bold text-slate-900 mt-1">Database Systems & DDIA</h3>
-          <div className="mt-3 flex items-center justify-between text-xs text-slate-600">
-            <span>Hold Queue:</span>
-            <span className="font-bold text-blue-700 font-tabular">14 students waiting</span>
-          </div>
-          <div className="w-full bg-slate-100 rounded-full h-1.5 mt-1.5">
-            <div className="bg-blue-600 h-1.5 rounded-full" style={{ width: '82%' }} />
-          </div>
-        </div>
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs"><span className="text-xs font-semibold text-slate-500">Approved titles</span><h3 className="text-2xl font-bold text-slate-900 mt-1">{books.length}</h3></div>
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs"><span className="text-xs font-semibold text-slate-500">Available copies</span><h3 className="text-2xl font-bold text-emerald-700 mt-1">{books.reduce((sum,b)=>sum+b.availableCopies,0)}</h3></div>
+        <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs"><span className="text-xs font-semibold text-slate-500">Categories</span><h3 className="text-2xl font-bold text-blue-700 mt-1">{new Set(books.map(b=>b.category)).size}</h3></div>
       </div>
 
       {/* Filter and Search Bar */}
@@ -177,7 +131,7 @@ export const PopularityHeatMapPage: React.FC = () => {
             </thead>
             <tbody className="divide-y divide-slate-100">
               {filteredBooks.map((book) => {
-                const heat = getHeatBadge(book.popularityScore);
+                const heat = getHeatBadge((book.onlineRating ?? 0) * 20);
                 return (
                   <tr key={book.id} className="hover:bg-slate-50/70 transition-colors">
                     <td className="py-3.5 px-4 font-medium text-slate-900">
@@ -198,7 +152,7 @@ export const PopularityHeatMapPage: React.FC = () => {
                       <div className="w-32 space-y-1">
                         <div className="flex justify-between text-[11px] font-bold font-tabular text-slate-700">
                           <span>{book.popularityScore}%</span>
-                          <span className="text-slate-400 font-normal">{book.reviewsCount} reviews</span>
+                          <span className="text-slate-400 font-normal">{book.onlineRatingCount ?? 0} ratings</span>
                         </div>
                         <div className="w-full bg-slate-100 rounded-full h-1.5 overflow-hidden">
                           <div
