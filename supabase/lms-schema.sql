@@ -50,6 +50,14 @@ alter table public.books add column if not exists ai_summary text;
 alter table public.books add column if not exists ai_status text not null default 'PENDING';
 alter table public.books add column if not exists submitted_at timestamptz not null default now();
 alter table public.books add column if not exists cover_url text;
+alter table public.books add column if not exists approval_status text not null default 'APPROVED' check (approval_status in ('PENDING','APPROVED','REJECTED'));
+alter table public.books add column if not exists rejection_reason text;
+alter table public.books add column if not exists ai_status text not null default 'PENDING';
+alter table public.books add column if not exists submitted_at timestamptz not null default now();
+alter table public.books add column if not exists pdf_path text;
+alter table public.profiles add column if not exists approval_status text not null default 'APPROVED' check (approval_status in ('PENDING','APPROVED','REJECTED'));
+alter table public.profiles add column if not exists approval_note text;
+
 alter table public.books add column if not exists online_rating numeric(2,1);
 alter table public.books add column if not exists online_rating_count integer not null default 0;
 alter table public.books add column if not exists online_rating_source text;
