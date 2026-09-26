@@ -660,6 +660,7 @@ export const LibraryProvider:
       await supabase
         .from('books')
         .select('*')
+        .eq('approval_status', 'APPROVED')
         .order(
           'title',
           {
