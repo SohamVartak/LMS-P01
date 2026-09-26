@@ -13,80 +13,81 @@ import {
   Award 
 } from 'lucide-react';
 
-const QUIZ_QUESTIONS = [
-  { question: 'Which library activity sounds most useful?', options: [{text:'Understand algorithms and data structures',personality:'The Analyst'},{text:'Build and debug software systems',personality:'The Builder'},{text:'Study circuits, processors, and embedded systems',personality:'The Engineer'},{text:'Explore AI and machine learning concepts',personality:'The Explorer'}] },
-  { question: 'How do you prefer to learn?', options: [{text:'Step-by-step theory and proofs',personality:'The Analyst'},{text:'Hands-on implementation',personality:'The Builder'},{text:'Diagrams, hardware, and system behavior',personality:'The Engineer'},{text:'Compare ideas across different fields',personality:'The Explorer'}] },
-  { question: 'What would you most likely do with a new technical book?', options: [{text:'Work through the concepts carefully',personality:'The Analyst'},{text:'Code along with the examples',personality:'The Builder'},{text:'Connect it to real hardware or architecture',personality:'The Engineer'},{text:'Jump between chapters and related topics',personality:'The Explorer'}] },
-  { question: 'What kind of project interests you most?', options: [{text:'An algorithmic problem solver',personality:'The Analyst'},{text:'A complete software application',personality:'The Builder'},{text:'A processor, embedded, or electronics project',personality:'The Engineer'},{text:'An AI experiment or research prototype',personality:'The Explorer'}] },
-  { question: 'What is your main reason for using the library?', options: [{text:'Master fundamentals',personality:'The Analyst'},{text:'Improve practical skills',personality:'The Builder'},{text:'Understand how engineered systems work',personality:'The Engineer'},{text:'Discover new technical areas',personality:'The Explorer'}] }
+const buildQuestions = (book: any) => [
+  {
+    question: `Which author is associated with “${book.title}”?`,
+    options: [book.author, 'Martin Fowler', 'Andrew S. Tanenbaum', 'Robert C. Martin'].sort(() => 0.5 - Math.random())
+  },
+  {
+    question: `Which category is this book listed under?`,
+    options: [book.category, 'Civil Engineering', 'Mechanical Engineering', 'Electrical Engineering'].sort(() => 0.5 - Math.random())
+  },
+  {
+    question: `What is the publication year recorded for “${book.title}”?`,
+    options: [String(book.publicationYear), '2010', '2015', '2020'].sort(() => 0.5 - Math.random())
+  },
+  {
+    question: `Which title did you choose for this quiz?`,
+    options: [book.title, 'Clean Code', 'Digital Design', 'Signals and Systems'].sort(() => 0.5 - Math.random())
+  },
+  {
+    question: `Who wrote “${book.title}”?`,
+    options: [book.author, 'Thomas H. Cormen', 'Ian Sommerville', 'S. Haykin'].sort(() => 0.5 - Math.random())
+  }
 ];
 
 export const PersonalityQuizPage: React.FC = () => {
   const { books, openBookModal, borrowBook } = useLibrary();
+  const [bookQuery, setBookQuery] = useState('');
+  const [selectedBookId, setSelectedBookId] = useState('');
+  const [quizQuestions, setQuizQuestions] = useState<any[]>([]);
+  const [quizAnswers, setQuizAnswers] = useState<Record<number,string>>({});
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-  const [selectedAnswers, setSelectedAnswers] = useState<Record<number, string>>({});
   const [quizCompleted, setQuizCompleted] = useState(false);
-  const [result, setResult] = useState<PersonalityResult | null>(null);
+  const [quizScore, setQuizScore] = useState(0);
 
-  const currentQ = QUIZ_QUESTIONS[currentQuestionIndex];
-  const progressPercent = Math.round(((currentQuestionIndex + 1) / QUIZ_QUESTIONS.length) * 100);
+  const selectedBook = books.find(b => b.id === selectedBookId);
+  const currentQ = quizQuestions[currentQuestionIndex];
+  const progressPercent = quizQuestions.length ? Math.round(((currentQuestionIndex + 1) / quizQuestions.length) * 100) : 0;
 
-  const handleSelectOption = (personality: string) => {
-    setSelectedAnswers(prev => ({
-      ...prev,
-      [currentQuestionIndex]: personality
-    }));
+  const startQuiz = () => {
+    if (!selectedBook) return;
+    setQuizQuestions(buildQuestions(selectedBook));
+    setQuizAnswers({});
+    setCurrentQuestionIndex(0);
+    setQuizCompleted(false);
+    setQuizScore(0);
   };
 
+  const handleSelectOption = (answer: string) => setQuizAnswers(prev => ({ ...prev, [currentQuestionIndex]: answer }));
+
   const handleNext = () => {
-    if (currentQuestionIndex < QUIZ_QUESTIONS.length - 1) {
+    if (!currentQ || !quizAnswers[currentQuestionIndex]) return;
+    if (currentQuestionIndex < quizQuestions.length - 1) {
       setCurrentQuestionIndex(prev => prev + 1);
     } else {
-      // Calculate archetype tally
-      const counts: Record<string, number> = {};
-      Object.values(selectedAnswers).forEach(pers => {
-        counts[pers] = (counts[pers] || 0) + 1;
+      let score = 0;
+      quizQuestions.forEach((q, index) => {
+        if (quizAnswers[index] === q.options[0]) score += 1;
       });
-
-      // Find highest tally or default to 'The Thinker'
-      let bestPers = 'The Thinker';
-      let maxCount = 0;
-      Object.entries(counts).forEach(([pers, cnt]) => {
-        if (cnt > maxCount) {
-          maxCount = cnt;
-          bestPers = pers;
-        }
-      });
-
-      const resultMap: Record<string, PersonalityResult> = {
-        'The Analyst': { title:'The Analyst', badge:'🧠', description:'You prefer structured reasoning and strong fundamentals.', strengths:['Logical analysis','Conceptual depth','Careful study'], recommendedBookIds:[] },
-        'The Builder': { title:'The Builder', badge:'🛠️', description:'You prefer learning by creating and implementing.', strengths:['Practical learning','Problem solving','Implementation'], recommendedBookIds:[] },
-        'The Engineer': { title:'The Engineer', badge:'⚙️', description:'You enjoy understanding how technical systems work together.', strengths:['Systems thinking','Engineering reasoning','Applied learning'], recommendedBookIds:[] },
-        'The Explorer': { title:'The Explorer', badge:'🔎', description:'You enjoy discovering connections across technical fields.', strengths:['Curiosity','Cross-disciplinary thinking','Exploration'], recommendedBookIds:[] }
-      };
-      const matchedResult = resultMap[bestPers] || resultMap['The Analyst'];
-      setResult(matchedResult);
+      setQuizScore(score);
       setQuizCompleted(true);
     }
   };
 
   const handlePrevious = () => {
-    if (currentQuestionIndex > 0) {
-      setCurrentQuestionIndex(prev => prev - 1);
-    }
+    if (currentQuestionIndex > 0) setCurrentQuestionIndex(prev => prev - 1);
   };
 
   const handleRetake = () => {
-    setSelectedAnswers({});
+    setQuizAnswers({});
     setCurrentQuestionIndex(0);
     setQuizCompleted(false);
-    setResult(null);
+    setQuizScore(0);
   };
 
-  const startingBook = (result && result.recommendedBookIds.length > 0)
-    ? books.find(b => b.id === result.recommendedBookIds[0])
-    : null;
+  const startingBook = selectedBook;
 
   return (
     <div className="space-y-8 max-w-4xl mx-auto animate-in fade-in duration-300">
@@ -101,11 +102,21 @@ export const PersonalityQuizPage: React.FC = () => {
           <span className="text-2xl">📖</span>
         </h1>
         <p className="text-xs text-slate-500 mt-1 max-w-lg mx-auto">
-          Answer 5 academic preference questions to uncover your reading archetype and ideal bibliography.
+          Enter a book name, then answer questions based on that book's catalogue information.
         </p>
       </div>
+      <div className="bg-white p-5 rounded-xl border border-slate-200 shadow-xs space-y-3">
+        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider">Enter a book name</label>
+        <input value={bookQuery} onChange={e=>setBookQuery(e.target.value)} placeholder="Search the approved engineering catalogue..." className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm" />
+        <select value={selectedBookId} onChange={e=>setSelectedBookId(e.target.value)} className="w-full px-3 py-2.5 rounded-lg border border-slate-300 text-sm bg-white">
+          <option value="">Select a matching book</option>
+          {books.filter(b => !bookQuery || b.title.toLowerCase().includes(bookQuery.toLowerCase())).map(b=><option key={b.id} value={b.id}>{b.title} — {b.author}</option>)}
+        </select>
+        <button disabled={!selectedBook} onClick={startQuiz} className="px-5 py-2.5 rounded-xl bg-blue-950 text-white text-xs font-semibold disabled:bg-slate-200 disabled:text-slate-400">Generate Book Quiz</button>
+      </div>
 
-      {!quizCompleted ? (
+
+      {!selectedBookId || !quizQuestions.length ? (
         /* Quiz Interface */
         <div className="bg-white p-6 sm:p-10 rounded-2xl border border-slate-200/80 shadow-xs space-y-8">
           
@@ -137,7 +148,7 @@ export const PersonalityQuizPage: React.FC = () => {
               return (
                 <button
                   key={idx}
-                  onClick={() => handleSelectOption(option.personality)}
+                  onClick={() => handleSelectOption(option)}
                   className={`w-full p-4 rounded-xl border text-left transition-all duration-200 flex items-center justify-between gap-4 ${
                     isSelected
                       ? 'border-blue-900 bg-blue-50/50 ring-2 ring-blue-900 text-slate-900 font-semibold'
@@ -192,43 +203,18 @@ export const PersonalityQuizPage: React.FC = () => {
           <div className="text-center space-y-2">
             <span className="text-4xl">{result?.badge}</span>
             <div className="inline-block px-3 py-1 rounded-full bg-blue-50 text-blue-900 text-xs font-bold uppercase tracking-wider mt-2">
-              Your Academic Persona
+              Your Book Quiz Result
             </div>
             <h2 className="text-2xl sm:text-3xl font-extrabold font-serif-academic text-slate-900">
-              {result?.title}
+              {selectedBook?.title}
             </h2>
             <p className="text-xs sm:text-sm text-slate-600 max-w-xl mx-auto leading-relaxed">
-              {result?.description}
+              {selectedBook ? `You scored ${quizScore} / ${quizQuestions.length} on this book quiz.` : ''}
             </p>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-4 border-t border-slate-100">
-            {/* Strengths */}
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <Sparkles className="w-3.5 h-3.5 text-amber-500" />
-                <span>Core Intellectual Strengths</span>
-              </h3>
-              <ul className="space-y-1.5 text-xs text-slate-700">
-                {result?.strengths.map((str: string, i: number) => (
-                  <li key={i} className="flex items-center gap-2">
-                    <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
-                    <span>{str}</span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            {/* Recommended Stacks */}
-            <div className="p-4 bg-slate-50 rounded-xl border border-slate-200 space-y-2">
-              <h3 className="text-xs font-bold text-slate-900 uppercase tracking-wider flex items-center gap-1.5">
-                <BookOpen className="w-3.5 h-3.5 text-blue-600" />
-                <span>Recommended Catalogue References</span>
-              </h3>
-              <p className="text-xs text-slate-600 leading-relaxed">
-                Your result is based only on the answers you selected in this session. Catalogue suggestions use the current engineering collection.
-              </p>
-            </div>
+          <div className="p-5 bg-slate-50 rounded-xl border border-slate-200 text-center text-sm text-slate-700">
+            Score: <strong>{quizScore} / {quizQuestions.length}</strong>
           </div>
 
           {/* Recommended Starting Book */}
