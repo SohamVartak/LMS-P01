@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import { supabase } from '../lib/supabase';
 import { useLibrary } from '../context/LibraryContext';
 import { BookCondition } from '../types';
 import { 
@@ -13,7 +14,25 @@ import {
 } from 'lucide-react';
 
 export const BookHealthPage: React.FC = () => {
-  const { books, updateBookCondition, openBookModal, user, userRole } = useLibrary();
+  const { books: contextBooks, openBookModal, userRole } = useLibrary();
+  const [books, setBooks] = useState<any[]>(contextBooks);
+  useEffect(() => {
+    const load = async () => {
+      const { data } = await supabase.from('books').select('id,title,author_name,category,shelf_location,condition,condition_notes,condition_set_at,author_id').eq('approval_status','APPROVED').order('title');
+      setBooks(data || []);
+    };
+    void load();
+  }, []);
+  const updateBookCondition = async (bookId: string, condition: BookCondition, notes?: string) => {
+    if (userRole !== 'ADMIN') return;
+    const { error } = await supabase.rpc('set_book_condition', { p_book_id: bookId, p_condition: condition, p_notes: notes || null });
+    if (error) {
+      const fallback = await supabase.from('books').update({ condition, condition_notes: notes || null, condition_set_at: new Date().toISOString() }).eq('id', bookId);
+      if (fallback.error) return;
+    }
+    const { data } = await supabase.from('books').select('id,title,author_name,category,shelf_location,condition,condition_notes,condition_set_at,author_id').eq('approval_status','APPROVED').order('title');
+    setBooks(data || []);
+  };
 
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedConditionFilter, setSelectedConditionFilter] = useState<string>('All');
@@ -85,7 +104,7 @@ export const BookHealthPage: React.FC = () => {
           <Activity className="w-6 h-6 text-blue-600" />
         </h1>
         <p className="text-xs text-slate-500 mt-1">
-          Monitor physical spine durability, page markings, bindery maintenance, and report inspection notes across all 30 library volumes.
+          Monitor the physical condition recorded for approved library books.
         </p>
       </div>
 
@@ -182,7 +201,7 @@ export const BookHealthPage: React.FC = () => {
           <h3 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
             Health & Inspection Registry ({filteredBooks.length} Items)
           </h3>
-          <span className="text-xs text-slate-500">Updated weekly by SIT library conservators</span>
+          <span className="text-xs text-slate-500">Condition records are maintained by library administrators.</span>
         </div>
 
         <div className="overflow-x-auto">
@@ -224,15 +243,15 @@ export const BookHealthPage: React.FC = () => {
                     </td>
 
                     <td className="py-3.5 px-4 text-slate-500 font-tabular">
-                      {book.lastCheckedDate}
+                      {book.condition_set_at ? new Date(book.condition_set_at).toLocaleDateString('en-IN') : 'Not checked'}
                     </td>
 
                     <td className="py-3.5 px-4 text-slate-600 max-w-xs truncate text-[11px]">
-                      {book.conditionNotes || 'Clean pages, binding intact.'}
+                      {book.condition_notes || 'No inspection note recorded.'}
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
-                      {userRole === 'AUTHOR' && book.authorId === user.id && (
+                      {userRole === 'ADMIN' && (
                         <button
                           onClick={() => handleOpenEdit(book.id, book.condition, book.conditionNotes)}
                           className="py-1 px-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[11px] font-semibold transition-colors"
