@@ -232,13 +232,14 @@ export const BookHealthPage: React.FC = () => {
                     </td>
 
                     <td className="py-3.5 px-4 text-right">
-                      <button
-                        onClick={() => handleOpenEdit(book.id, book.condition, book.conditionNotes)}
-                        className="py-1 px-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[11px] font-semibold transition-colors"
-                      >
-                        Update
-                      </button>
-          )}
+                      {userRole === 'AUTHOR' && book.authorId === user.id && (
+                        <button
+                          onClick={() => handleOpenEdit(book.id, book.condition, book.conditionNotes)}
+                          className="py-1 px-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-[11px] font-semibold transition-colors"
+                        >
+                          Update
+                        </button>
+                      )}
                     </td>
                   </tr>
                 );
