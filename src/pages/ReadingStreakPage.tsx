@@ -44,21 +44,6 @@ export const ReadingStreakPage: React.FC = () => {
   const loggedToday = progressDates.has(today.toISOString().split('T')[0]);
 
   const badges = [
-    { id: 'b-1', title: '3-Day Reader', tier: 'Bronze', unlocked: currentStreak >= 3, icon: '🥉', desc: 'Sustained reading habit for 3 continuous days.' },
-    { id: 'b-2', title: '7-Day Scholar', tier: 'Silver', unlocked: currentStreak >= 7, icon: '🥈', desc: 'Achieved a whole week of daily engineering study.' },
-    { id: 'b-3', title: '14-Day Bookworm', tier: 'Gold', unlocked: currentStreak >= 14, icon: '🥇', desc: 'Read for 14 continuous days without dropping session.' },
-    { id: 'b-4', title: '30-Day Master', tier: 'Platinum', unlocked: currentStreak >= 30, icon: '🏆', desc: 'One full month of unbroken academic reading streak.' }
-  ];
-
-  const handleLogPages = () => {
-    if (loggedToday) {
-      addToast('Already Recorded', 'Reading activity for today is already reflected in your progress.', 'info');
-    } else {
-      addToast('Reading Activity', 'Update a borrowed book\'s reading progress to record today\'s activity.', 'info');
-    }
-  };
-
-  const badges = [
     { id: 'b-1', title: '3-Day Reader', tier: 'Bronze', unlocked: currentStreak >= 3, icon: '🥉', desc: 'Sustained reading activity for 3 continuous days.' },
     { id: 'b-2', title: '7-Day Scholar', tier: 'Silver', unlocked: currentStreak >= 7, icon: '🥈', desc: 'Recorded activity for 7 continuous days.' },
     { id: 'b-3', title: '14-Day Bookworm', tier: 'Gold', unlocked: currentStreak >= 14, icon: '🥇', desc: 'Recorded activity for 14 continuous days.' },
