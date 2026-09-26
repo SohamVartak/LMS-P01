@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useLibrary } from '../context/LibraryContext';
 import { supabase } from '../lib/supabase';
 import { 
@@ -11,11 +11,12 @@ import {
 } from 'lucide-react';
 
 interface SeatConfig {
+  id: string;
   number: string;
   section: string;
-  hasPower: boolean;
-  hasLamp: boolean;
-  isWindow: boolean;
+  seatType: string;
+  status: string;
+  floor: number;
 }
 
 export const SeatReservationPage: React.FC = () => {
@@ -26,6 +27,7 @@ export const SeatReservationPage: React.FC = () => {
   const [selectedTimeSlot, setSelectedTimeSlot] = useState<string>('09:00 AM – 12:00 PM');
   const [selectedSeatNumber, setSelectedSeatNumber] = useState<string | null>(null);
   const [allReservations, setAllReservations] = useState<any[]>([]);
+  const [librarySeats, setLibrarySeats] = useState<SeatConfig[]>([]);
   const [libraryActivity, setLibraryActivity] = useState('Reading');
 
   const timeSlots = [
@@ -48,23 +50,28 @@ export const SeatReservationPage: React.FC = () => {
 
   const selectedDateValue = dateOptions.find(d => d.label === selectedDate)?.value || dateOptions[0].value;
 
-  // Generate 20 seats for current floor
-  const floorSeats: SeatConfig[] = Array.from({ length: 20 }, (_, i) => {
-    const num = i + 1;
-    const numStr = num < 10 ? `0${num}` : `${num}`;
-    const code = `F${selectedFloor}-${numStr}`;
-    let section = 'Quiet Reading Carrel';
-    if (num > 12) section = 'Discussion Study Pod';
-    else if (num > 6) section = 'Window Research Desk';
-
-    return {
-      number: code,
-      section,
-      hasPower: num % 2 === 1,
-      hasLamp: true,
-      isWindow: num > 6 && num <= 12
+  useEffect(() => {
+    const loadSeats = async () => {
+      const { data, error } = await supabase
+        .from('library_seats')
+        .select('id, seat_number, floor, section, seat_type, status')
+        .order('floor')
+        .order('seat_number');
+      if (!error) setLibrarySeats((data || []).map((seat: any) => ({
+        id: seat.id,
+        number: seat.seat_number,
+        section: seat.section || 'Library',
+        seatType: seat.seat_type || 'STANDARD',
+        status: seat.status || 'AVAILABLE',
+        floor: seat.floor
+      })));
     };
-  });
+    void loadSeats();
+  }, []);
+
+  const floors = useMemo(() => Array.from(new Set(librarySeats.map(seat => seat.floor))).sort((a,b) => a-b), [librarySeats]);
+
+  const floorSeats = librarySeats.filter(seat => seat.floor === selectedFloor);
 
   React.useEffect(() => {
     const loadReservations = async () => {
@@ -86,18 +93,18 @@ export const SeatReservationPage: React.FC = () => {
 
     const dbReservation = allReservations.find(r => r.seat_number === seatNo);
     if (dbReservation) {
-      return dbReservation.user_id === reservations.find(r => r.seatNumber === seatNo && r.floor === selectedFloor && r.timeSlot === selectedTimeSlot)?.userId
-        ? 'reserved'
-        : 'occupied';
+      const mine = reservations.some(r => r.id === dbReservation.id);
+      return mine ? 'reserved' : 'occupied';
     }
-    return 'available';
+    const seat = floorSeats.find(s => s.number === seatNo);
+    return seat?.status === 'BLOCKED' ? 'occupied' : 'available';
   };
 
   const currentSelectedSeat = floorSeats.find(s => s.number === selectedSeatNumber) || null;
 
   const handleBooking = async () => {
     if (selectedSeatNumber && currentSelectedSeat) {
-      reserveSeat(
+      void reserveSeat(
         selectedFloor,
         selectedSeatNumber,
         selectedDate,
@@ -145,23 +152,18 @@ export const SeatReservationPage: React.FC = () => {
             1. Select Floor
           </label>
           <div className="grid grid-cols-3 gap-2">
-            {[1, 2, 3].map(floor => (
-              <button
-                key={floor}
-                onClick={() => {
-                  setSelectedFloor(floor);
-                  setSelectedSeatNumber(`F${floor}-07`);
-                }}
-                className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${
-                  selectedFloor === floor
-                    ? 'bg-[#4C1D95] text-white border-[#4C1D95] shadow-xs'
-                    : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'
-                }`}
-              >
-                Floor {floor}
-              </button>
-            ))}
-          </div>
+            {floors.map(floor => (
+                <button
+                  key={floor}
+                  onClick={() => {
+                    setSelectedFloor(floor);
+                    setSelectedSeatNumber(null);
+                  }}
+                  className={`py-2 px-3 rounded-lg text-xs font-semibold border transition-all ${selectedFloor === floor ? 'bg-[#4C1D95] text-white border-[#4C1D95] shadow-xs' : 'bg-white text-slate-700 border-slate-300 hover:bg-slate-50'}`}
+                >
+                  Floor {floor}
+                </button>
+              ))}          </div>
         </div>
 
         {/* Date Selection */}
@@ -170,7 +172,7 @@ export const SeatReservationPage: React.FC = () => {
             2. Select Date
           </label>
           <div className="grid grid-cols-3 gap-2">
-            {dates.map(d => (
+            {dateOptions.map(d => (
               <button
                 key={d.label}
                 onClick={() => setSelectedDate(d.label)}
@@ -288,7 +290,7 @@ export const SeatReservationPage: React.FC = () => {
           </div>
 
           <div className="text-[11px] text-slate-400 text-center font-tabular">
-            RFID Smart Check-in required within 15 minutes of reservation start time.
+            Seat availability is synchronized with the library seat inventory and reservation records.
           </div>
         </div>
 
