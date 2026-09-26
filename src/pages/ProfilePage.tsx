@@ -12,13 +12,14 @@ import {
 } from 'lucide-react';
 
 export const ProfilePage: React.FC = () => {
-  const { user, updateUserProfile, theme, setTheme } = useLibrary();
+  const { user, borrowedBooks, updateUserProfile, theme, setTheme } = useLibrary();
+  const activeLoans = borrowedBooks.filter(book => ['Borrowed', 'Currently Reading', 'Overdue'].includes(book.status)).length;
+  const completedBooks = borrowedBooks.filter(book => book.status === 'Completed').length;
 
   // Form states
   const [name, setName] = useState(user.name);
   const [department, setDepartment] = useState(user.department);
   const [year, setYear] = useState(user.year);
-  const [semesterGoal, setSemesterGoal] = useState(15);
   const [isSaved, setIsSaved] = useState(false);
 
   const handleSave = (e: React.FormEvent) => {
@@ -138,7 +139,7 @@ export const ProfilePage: React.FC = () => {
           <UserCheck className="w-6 h-6 text-[var(--app-accent)]" />
         </h1>
         <p className="text-xs text-[var(--app-text-muted)] mt-1">
-          Review your institutional library credentials, digital circulation card, reading theme, and semester goals.
+          Review your institutional library credentials, digital circulation card, reading activity, and reading theme.
         </p>
       </div>
 
@@ -198,19 +199,19 @@ export const ProfilePage: React.FC = () => {
             <div className="space-y-2 text-xs">
               <div className="flex justify-between py-1 border-b border-[var(--app-border)]">
                 <span className="text-[var(--app-text-muted)]">Max Active Loan Quota</span>
-                <span className="font-bold text-[var(--app-text)] font-tabular">6 Books</span>
+                <span className="font-bold text-[var(--app-text)] font-tabular">{activeLoans} active</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--app-border)]">
                 <span className="text-[var(--app-text-muted)]">Current Active Loans</span>
-                <span className="font-bold text-[var(--app-accent)] font-tabular">{user.booksBorrowed} Books</span>
+                <span className="font-bold text-[var(--app-accent)] font-tabular">{activeLoans} Books</span>
               </div>
               <div className="flex justify-between py-1 border-b border-[var(--app-border)]">
-                <span className="text-[var(--app-text-muted)]">Outstanding Overdue Fines</span>
-                <span className="font-bold text-emerald-400 font-tabular">₹0.00 (Clear)</span>
+                <span className="text-[var(--app-text-muted)]">Overdue records</span>
+                <span className="font-bold text-[var(--app-text)] font-tabular">{borrowedBooks.filter(book => book.status === 'Overdue').length}</span>
               </div>
               <div className="flex justify-between py-1">
-                <span className="text-[var(--app-text-muted)]">Renewal Cycle</span>
-                <span className="font-medium text-[var(--app-text)]">14 Days / 1 Auto-Renewal</span>
+                <span className="text-[var(--app-text-muted)]">Completed books</span>
+                <span className="font-medium text-[var(--app-text)]">{completedBooks}</span>
               </div>
             </div>
           </div>
@@ -346,23 +347,17 @@ export const ProfilePage: React.FC = () => {
               </select>
             </div>
 
-            {/* Reading Goal Target */}
+            {/* Reading Activity */}
             <div className="p-4 rounded-xl bg-[var(--app-surface-subtle)] border border-[var(--app-border)] space-y-3">
               <div className="flex items-center justify-between text-xs font-semibold text-[var(--app-text)]">
                 <span className="flex items-center gap-1.5">
                   <BookOpen className="w-4 h-4 text-[var(--app-accent)]" />
-                  <span>Annual Reading Target:</span>
+                  <span>Recorded Reading Activity</span>
                 </span>
-                <span className="text-[var(--app-accent)] font-bold font-tabular">{user.booksCompleted} / {semesterGoal} Books</span>
-              </div>
-              <div className="w-full bg-[var(--app-surface)] rounded-full h-2 overflow-hidden border border-[var(--app-border)]">
-                <div
-                  className="bg-gradient-to-r from-[var(--app-primary)] to-[var(--app-accent)] h-2 rounded-full transition-all duration-500"
-                  style={{ width: `${Math.min(100, Math.round((user.booksCompleted / semesterGoal) * 100))}%` }}
-                />
+                <span className="text-[var(--app-accent)] font-bold font-tabular">{completedBooks} completed</span>
               </div>
               <p className="text-[11px] text-[var(--app-text-muted)]">
-                You have reached {Math.round((user.booksCompleted / semesterGoal) * 100)}% of your annual syllabus and leisure reading goal.
+                Your reading totals are based on books recorded in your library circulation history. No target is assumed until a library reading-goal feature is configured.
               </p>
             </div>
 
