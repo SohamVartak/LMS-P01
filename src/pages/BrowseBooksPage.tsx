@@ -29,7 +29,6 @@ export const BrowseBooksPage: React.FC = () => {
     'Artificial Intelligence',
     'Software Engineering',
     'Computer Engineering',
-    'Artificial Intelligence',
     'Electrical Engineering',
     'Electronics & Communication',
     'Mechanical Engineering',
