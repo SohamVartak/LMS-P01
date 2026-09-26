@@ -25,19 +25,6 @@ import {
   BackgroundTheme
 } from '../types';
 
-import {
-  INITIAL_BOOKS,
-  INITIAL_USER,
-  INITIAL_BORROW_RECORDS,
-  INITIAL_SEAT_RESERVATIONS,
-  INITIAL_EXCHANGE_ITEMS,
-  INITIAL_COMPANIONS,
-  INITIAL_SHELVES,
-  INITIAL_NOTIFICATIONS,
-  INITIAL_ACTIVITIES,
-  INITIAL_SEARCH_HISTORY
-} from '../data/mockData';
-
 
 /* =========================================================
    LIBRARY CONTEXT TYPE
@@ -321,19 +308,24 @@ export const LibraryProvider:
 
   const [books, setBooks] =
     useState<Book[]>(
-      INITIAL_BOOKS
+      []
     );
 
 
   const [user, setUser] =
     useState<User>(
-      INITIAL_USER
+      {
+        id: '', name: '', studentId: '', email: '', department: '', year: '',
+        readingStreak: 0, booksCompleted: 0, booksBorrowed: 0, pendingReturns: 0,
+        totalReadingHours: 0, longestStreak: 0, favoriteGenre: '',
+        preferences: { genres: [], dailyGoalMinutes: 0, preferredTime: '' }
+      }
     );
 
 
   const [borrowedBooks, setBorrowedBooks] =
     useState<BorrowRecord[]>(
-      INITIAL_BORROW_RECORDS
+      []
     );
 
 
@@ -343,43 +335,43 @@ export const LibraryProvider:
 
   const [reservations, setReservations] =
     useState<SeatReservation[]>(
-      INITIAL_SEAT_RESERVATIONS
+      []
     );
 
 
   const [exchangeItems, setExchangeItems] =
     useState<BookExchangeItem[]>(
-      INITIAL_EXCHANGE_ITEMS
+      []
     );
 
 
   const [companions, setCompanions] =
     useState<ReadingCompanion[]>(
-      INITIAL_COMPANIONS
+      []
     );
 
 
   const [shelves] =
     useState<ShelfInfo[]>(
-      INITIAL_SHELVES
+      []
     );
 
 
   const [notifications, setNotifications] =
     useState<NotificationItem[]>(
-      INITIAL_NOTIFICATIONS
+      []
     );
 
 
   const [activities, setActivities] =
     useState<ActivityTimelineItem[]>(
-      INITIAL_ACTIVITIES
+      []
     );
 
 
   const [searchHistory, setSearchHistory] =
     useState<SearchHistoryItem[]>(
-      INITIAL_SEARCH_HISTORY
+      []
     );
 
 
