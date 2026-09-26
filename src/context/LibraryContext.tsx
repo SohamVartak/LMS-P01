@@ -2250,16 +2250,16 @@ export const LibraryProvider:
     condition: BookCondition,
     notes?: string
   ) => {
-    if (userRole !== 'AUTHOR' || !user.id) {
+    if (userRole !== 'ADMIN' || !user.id) {
       addToast(
-        'Author Access Required',
-        'Only the author assigned to a book can set its condition.',
+        'Administrator Access Required',
+        'Only a library administrator can update book condition.',
         'warning'
       );
       return false;
     }
 
-    const { data, error } = await supabase.rpc('set_book_condition', {
+    const { error } = await supabase.rpc('set_book_condition', {
       p_book_id: bookId,
       p_condition: condition,
       p_notes: notes || ''
@@ -2270,9 +2270,6 @@ export const LibraryProvider:
       return false;
     }
 
-    const updated = Array.isArray(data) ? data[0] : data;
-    const today = new Date().toISOString().split('T')[0];
-
     setBooks(prev =>
       prev.map(b =>
         b.id === bookId
@@ -2280,7 +2277,7 @@ export const LibraryProvider:
               ...b,
               condition,
               conditionNotes: notes || '',
-              lastCheckedDate: today
+              lastCheckedDate: new Date().toISOString().split('T')[0]
             }
           : b
       )
@@ -2288,10 +2285,10 @@ export const LibraryProvider:
 
     addToast(
       'Condition Updated',
-      `Book condition logged as "${condition}".`,
+      'Book condition logged as "' + condition + '".',
       'success'
     );
-    return Boolean(updated);
+    return true;
   };
 
 
