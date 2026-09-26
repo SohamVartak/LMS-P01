@@ -117,11 +117,18 @@ export const BookDetailModal: React.FC = () => {
 
               {/* Badges / Rating Row */}
               <div className="flex flex-wrap items-center gap-4 my-4 py-2 border-y border-[var(--app-border)] text-xs text-[var(--app-text)]">
-                <div className="flex items-center gap-1 font-semibold">
+                <div className="flex items-center gap-3 font-semibold">
+                <div className="flex items-center gap-1">
                   <Star className="w-4 h-4 fill-[#F97316] text-[#F97316]" />
-                  <span className="font-bold">{book.rating.toFixed(1)}</span>
-                  <span className="text-slate-400 font-normal">({book.reviewsCount} reviews)</span>
+                  <span className="font-bold">{book.onlineRating == null ? '—' : book.onlineRating.toFixed(1)}</span>
+                  <span className="text-slate-400 font-normal">Online</span>
                 </div>
+                <div className="flex items-center gap-1">
+                  <Star className="w-4 h-4 text-emerald-600" />
+                  <span className="font-bold">{book.studentRating == null ? '—' : book.studentRating.toFixed(1)}</span>
+                  <span className="text-slate-400 font-normal">Students</span>
+                </div>
+              </div>
                 <div className="flex items-center gap-1 font-tabular">
                   <Clock className="w-3.5 h-3.5 opacity-60" />
                   <span>Estimated {book.readingTimeHours} hours ({book.pages} pages)</span>
