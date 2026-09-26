@@ -231,7 +231,7 @@ export const BookHealthPage: React.FC = () => {
                     </td>
 
                     <td className="py-3.5 px-4 text-slate-600 font-medium">
-                      {book.shelfLocation}
+                      {book.shelf_location}
                     </td>
 
                     <td className="py-3.5 px-4">
