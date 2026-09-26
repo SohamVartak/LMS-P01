@@ -697,7 +697,7 @@ export const LibraryProvider:
 
     if (!shelvesError && dbShelves) {
       setShelves(dbShelves.map((s: any) => {
-        const shelfBooks = (dbBooks || []).filter((b: any) => b.shelf_id === s.id);
+        const shelfBooks = (dbBooks || []).filter((b: any) => b.shelf_id === s.id || (!b.shelf_id && b.shelf_location === s.code));
         return {
           id: s.id,
           code: s.code,
