@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useMemo } from 'react';
 import { useLibrary } from '../context/LibraryContext';
 import { 
   Flame, 
@@ -13,19 +13,50 @@ import {
 } from 'lucide-react';
 
 export const ReadingStreakPage: React.FC = () => {
-  const { user, updateUserProfile, addToast } = useLibrary();
-  const [loggedToday, setLoggedToday] = useState<boolean>(true);
-  const [pagesToLog, setPagesToLog] = useState<number>(25);
+  const { user, borrowedBooks, addToast } = useLibrary();
 
-  const streakDays = [
-    { day: 'Mon', date: 'Sep 18', completed: true },
-    { day: 'Tue', date: 'Sep 19', completed: true },
-    { day: 'Wed', date: 'Sep 20', completed: true },
-    { day: 'Thu', date: 'Sep 21', completed: true },
-    { day: 'Fri', date: 'Sep 22', completed: true },
-    { day: 'Sat', date: 'Sep 23', completed: true },
-    { day: 'Sun', date: 'Sep 24', completed: loggedToday, isToday: true },
+  const progressDates = useMemo(() => {
+    const dates = new Set<string>();
+    borrowedBooks.forEach(book => {
+      if (book.progressPercent > 0) {
+        const date = book.borrowDate ? new Date(book.borrowDate).toISOString().split('T')[0] : '';
+        if (date) dates.add(date);
+      }
+    });
+    return dates;
+  }, [borrowedBooks]);
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const streakDays = Array.from({ length: 7 }, (_, index) => {
+    const date = new Date(today);
+    date.setDate(today.getDate() - (6 - index));
+    const key = date.toISOString().split('T')[0];
+    return {
+      day: date.toLocaleDateString('en-IN', { weekday: 'short' }),
+      date: date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short' }),
+      completed: progressDates.has(key),
+      isToday: index === 6
+    };
+  });
+
+  const currentStreak = user.readingStreak || 0;
+  const loggedToday = progressDates.has(today.toISOString().split('T')[0]);
+
+  const badges = [
+    { id: 'b-1', title: '3-Day Reader', tier: 'Bronze', unlocked: currentStreak >= 3, icon: '🥉', desc: 'Sustained reading habit for 3 continuous days.' },
+    { id: 'b-2', title: '7-Day Scholar', tier: 'Silver', unlocked: currentStreak >= 7, icon: '🥈', desc: 'Achieved a whole week of daily engineering study.' },
+    { id: 'b-3', title: '14-Day Bookworm', tier: 'Gold', unlocked: currentStreak >= 14, icon: '🥇', desc: 'Read for 14 continuous days without dropping session.' },
+    { id: 'b-4', title: '30-Day Master', tier: 'Platinum', unlocked: currentStreak >= 30, icon: '🏆', desc: 'One full month of unbroken academic reading streak.' }
   ];
+
+  const handleLogPages = () => {
+    if (loggedToday) {
+      addToast('Already Recorded', 'Reading activity for today is already reflected in your progress.', 'info');
+    } else {
+      addToast('Reading Activity', 'Update a borrowed book\'s reading progress to record today\'s activity.', 'info');
+    }
+  };
 
   const badges = [
     {
@@ -96,10 +127,10 @@ export const ReadingStreakPage: React.FC = () => {
             Current Active Cadence
           </span>
           <h2 className="text-4xl sm:text-5xl font-extrabold font-tabular tracking-tight">
-            {user.readingStreak} Day Streak 🔥
+            {currentStreak} Day Streak 🔥
           </h2>
           <p className="text-xs sm:text-sm text-amber-100 max-w-md leading-relaxed">
-            You are in the top 5% of active readers at SIT Central Library! 7 more days to unlock the 14-Day Bookworm Medal.
+            Your streak is calculated from your recorded reading activity. Keep updating your book progress to maintain it.
           </p>
         </div>
 
@@ -107,13 +138,13 @@ export const ReadingStreakPage: React.FC = () => {
         <div className="bg-white/10 backdrop-blur-md p-5 rounded-xl border border-white/20 text-center w-full md:w-72 shrink-0 space-y-3">
           <Sparkles className="w-6 h-6 text-amber-200 mx-auto" />
           <h3 className="text-xs font-bold uppercase tracking-wider text-amber-100">Today&apos;s Goal</h3>
-          <p className="text-xs text-white">Read 20 pages today to maintain your streak!</p>
+          <p className="text-xs text-white">Update your reading progress today to record reading activity.</p>
           
           <button
             onClick={handleLogPages}
             className="w-full py-2 px-3 rounded-lg bg-white text-orange-700 font-bold text-xs hover:bg-amber-50 transition-colors shadow-xs"
           >
-            {loggedToday ? '✓ Logged Today (+25 pgs)' : 'Log Today&apos;s Reading'}
+            {loggedToday ? '✓ Recorded Today' : 'Update Reading Progress'}
           </button>
         </div>
       </div>
@@ -125,7 +156,7 @@ export const ReadingStreakPage: React.FC = () => {
             Weekly Reading Cadence
           </h3>
           <span className="text-xs text-slate-500 font-medium font-tabular">
-            100% attendance this week
+            {streakDays.filter(day => day.completed).length}/7 days recorded this week
           </span>
         </div>
 
