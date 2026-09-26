@@ -17,14 +17,12 @@ import {
 export const SurpriseMePage: React.FC = () => {
   const { books, openBookModal, borrowBook, toggleWishlist, wishlist } = useLibrary();
 
-  const [isFlipped, setIsFlipped] = useState(false);
   const [isRolling, setIsRolling] = useState(false);
   const [randomBook, setRandomBook] = useState<Book | null>(null);
   const [filterPreference, setFilterPreference] = useState<'any' | 'quick' | 'masterpiece'>('any');
 
   const handleRollDice = () => {
     setIsRolling(true);
-    setIsFlipped(false);
 
     setTimeout(() => {
       let pool = [...books];
@@ -39,7 +37,6 @@ export const SurpriseMePage: React.FC = () => {
       const pick = pool[Math.floor(Math.random() * pool.length)];
       setRandomBook(pick);
       setIsRolling(false);
-      setIsFlipped(true);
     }, 600);
   };
 
@@ -98,124 +95,38 @@ export const SurpriseMePage: React.FC = () => {
         </button>
       </div>
 
-      {/* 3D Flip Card Container */}
-      <div className="perspective-1000 min-h-[380px] sm:min-h-[420px] flex items-center justify-center">
-        <div 
-          className={`w-full max-w-lg transition-transform duration-700 preserve-3d relative ${
-            isFlipped ? 'rotate-y-180' : ''
-          }`}
-        >
-          {/* Card Front (Mystery / Unopened State) */}
-          <div className="w-full bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white p-8 rounded-2xl shadow-xl border border-slate-800 backface-hidden flex flex-col items-center justify-between text-center min-h-[380px]">
-            <div className="w-12 h-12 rounded-2xl bg-[var(--app-surface-subtle)] backdrop-blur-xs text-amber-400 flex items-center justify-center border border-[var(--app-border)]">
-              <Dices className="w-6 h-6 text-[var(--app-accent)]" />
-            </div>
-
-            <div className="space-y-3 max-w-xs">
-              <h2 className="text-xl font-bold font-serif-academic text-white">
-                Uncharted Knowledge Awaits
-              </h2>
-              <p className="text-xs text-blue-200/80 leading-relaxed">
-                Step outside your comfort zone. Click the button below to randomly select from the current approved engineering catalogue.
-              </p>
-            </div>
-
-            <div className="text-[11px] text-slate-400 flex items-center gap-1.5">
-              <Sparkles className="w-3.5 h-3.5 text-amber-400" />
-              <span>Random algorithmic seed with balanced distribution</span>
-            </div>
+      <div className="min-h-[380px] sm:min-h-[420px] flex items-center justify-center">
+        {!randomBook ? (
+          <div className="w-full max-w-lg bg-gradient-to-br from-slate-900 via-blue-950 to-indigo-950 text-white p-8 rounded-2xl shadow-xl border border-slate-800 min-h-[380px] flex flex-col items-center justify-center text-center space-y-5">
+            <Dices className="w-10 h-10 text-amber-400" />
+            <h2 className="text-xl font-bold font-serif-academic">Uncharted Knowledge Awaits</h2>
+            <p className="text-xs text-blue-200/80 max-w-xs">Choose a filter and draw a real title from the approved engineering catalogue.</p>
           </div>
-
-          {/* Card Back (Revealed Book State) */}
-          <div className="absolute inset-0 w-full bg-[var(--app-surface-elevated)] p-6 sm:p-8 rounded-2xl shadow-xl border border-[var(--app-border)] backface-hidden rotate-y-180 flex flex-col justify-between">
+        ) : (
+          <div className="w-full max-w-lg bg-[var(--app-surface-elevated)] p-6 sm:p-8 rounded-2xl shadow-xl border border-[var(--app-border)] min-h-[380px] flex flex-col justify-between">
             <div className="flex flex-col sm:flex-row items-center sm:items-start gap-5">
-              <div 
-                onClick={() => openBookModal(randomBook)}
-                className="cursor-pointer shrink-0"
-              >
-                <BookSpineCover book={randomBook} size="md" />
-              </div>
-
-              <div className="flex-1 min-w-0 text-center sm:text-left">
-                <div className="flex items-center justify-center sm:justify-between gap-2 text-xs text-[var(--app-accent)] font-bold uppercase tracking-wider mb-1">
-                  <span>{randomBook.category}</span>
-                  <span className="text-[var(--app-text-muted)] font-tabular font-normal hidden sm:inline">
-                    {randomBook.publicationYear}
-                  </span>
+              <div onClick={() => openBookModal(randomBook)} className="cursor-pointer shrink-0"><BookSpineCover book={randomBook} size="md" /></div>
+              <div className="min-w-0">
+                <h2 className="text-xl font-bold text-slate-900">{randomBook.title}</h2>
+                <p className="text-sm text-slate-500 mt-1">by {randomBook.author}</p>
+                <p className="text-xs text-slate-600 mt-4 leading-relaxed">{randomBook.description}</p>
+                <div className="flex items-center gap-2 mt-4 text-xs text-amber-600">
+                  <Star className="w-4 h-4 fill-amber-400" />
+                  <span>{randomBook.onlineRating ?? randomBook.studentRating ?? 'Not rated'}</span>
+                  <span className="text-slate-400">rating</span>
                 </div>
-
-                <h3 
-                  onClick={() => openBookModal(randomBook)}
-                  className="text-base sm:text-lg font-bold font-serif-academic text-[var(--app-text)] leading-snug hover:text-[var(--app-primary)] cursor-pointer"
-                >
-                  {randomBook.title}
-                </h3>
-                <p className="text-xs text-[var(--app-text-muted)] mt-0.5">by {randomBook.author}</p>
-
-                <div className="flex items-center justify-center sm:justify-start gap-3 my-3 text-xs text-[var(--app-text-muted)] font-tabular">
-                  <div className="flex items-center gap-1">
-                    <Star className="w-3.5 h-3.5 fill-amber-400 text-amber-500" />
-                    <span className="font-semibold">{randomBook.rating}</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <Clock className="w-3.5 h-3.5 text-slate-400" />
-                    <span>~{randomBook.readingTimeHours}h</span>
-                  </div>
-                  <div className="flex items-center gap-1">
-                    <MapPin className="w-3.5 h-3.5 text-blue-600" />
-                    <span>{randomBook.shelfLocation}</span>
-                  </div>
-                </div>
-
-                <p className="text-xs text-slate-600 line-clamp-3 leading-relaxed">
-                  {randomBook.description}
-                </p>
+                <p className="text-xs text-slate-500 mt-3"><MapPin className="inline w-3.5 h-3.5 mr-1" />{randomBook.shelfLocation || 'Shelf location not recorded'}</p>
               </div>
             </div>
-
-            {/* Bottom Actions for Revealed Book */}
-            <div className="mt-5 pt-3 border-t border-slate-100 flex items-center justify-between gap-2">
-              <button
-                onClick={() => openBookModal(randomBook)}
-                className="py-2 px-3 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 text-xs font-semibold"
-              >
-                Full Details
-              </button>
-
-              <div className="flex items-center gap-2">
-                <button
-                  onClick={() => toggleWishlist(randomBook.id)}
-                  className={`p-2 rounded-lg border text-xs font-semibold transition-colors ${
-                    isSaved ? 'bg-amber-50 border-amber-200 text-amber-700' : 'border-slate-300 text-slate-600 hover:bg-slate-50'
-                  }`}
-                  title="Save to reading list"
-                >
-                  <Bookmark className={`w-3.5 h-3.5 ${isSaved ? 'fill-amber-600' : ''}`} />
-                </button>
-                <button
-                  onClick={() => borrowBook(randomBook.id)}
-                  className="py-2 px-4 rounded-lg bg-blue-950 text-white hover:bg-blue-900 text-xs font-semibold flex items-center gap-1.5 shadow-xs"
-                >
-                  <BookOpen className="w-3.5 h-3.5" />
-                  <span>Issue Copy</span>
-                </button>
-              </div>
+            <div className="mt-6 flex gap-2 border-t border-slate-200 pt-4">
+              <button onClick={() => openBookModal(randomBook)} className="flex-1 py-2 rounded-lg border border-slate-300 text-xs font-semibold">View Details</button>
+              <button onClick={() => void borrowBook(randomBook.id)} className="flex-1 py-2 rounded-lg bg-blue-950 text-white text-xs font-semibold">Issue Copy</button>
+              <button onClick={handleRollDice} className="py-2 px-3 rounded-lg border border-slate-300 text-xs font-semibold"><RotateCcw className="w-4 h-4" /></button>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
-      {/* Roll Action Button */}
-      <div className="text-center pt-2">
-        <button
-          onClick={handleRollDice}
-          disabled={isRolling}
-          className="py-3 px-8 rounded-xl bg-blue-950 hover:bg-blue-900 text-white font-bold text-sm shadow-md transition-all inline-flex items-center gap-2.5 active:scale-95"
-        >
-          <Dices className={`w-5 h-5 text-amber-400 ${isRolling ? 'animate-spin' : ''}`} />
-          <span>{isRolling ? 'Rolling Random Seed...' : (isFlipped ? 'Roll Again 🎲' : 'Roll The Dice 🎲')}</span>
-        </button>
-      </div>
 
     </div>
   );
