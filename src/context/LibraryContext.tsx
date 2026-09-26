@@ -526,22 +526,14 @@ export const LibraryProvider: React.FC<{
     };
 
     const init = async () => {
-      const {
-        data,
-        error
-      } = await supabase.auth.getSession();
+      // Always require an explicit login when the app starts.
+      // Supabase normally persists the previous browser session, so clear it here.
+      await supabase.auth.signOut();
 
-      if (error) {
-        console.error(
-          'SESSION ERROR:',
-          error
-        );
-      }
-
-      // Do not automatically restore an existing Supabase session on app startup.
-      // The user must sign in through the login page each time the app is opened.
-      // We still listen for sign-in/sign-out events after the app is running.
       if (mounted) {
+        setIsLoggedIn(false);
+        setUserRole(null);
+        setCurrentPageState('dashboard');
         setAuthLoading(false);
       }
     };
@@ -552,15 +544,17 @@ export const LibraryProvider: React.FC<{
       data: listener
     } =
       supabase.auth.onAuthStateChange(
-        (_event, session) => {
+        (event, session) => {
+          // Supabase emits INITIAL_SESSION on startup. Ignore it because init()
+          // deliberately clears any persisted session.
+          if (event === 'INITIAL_SESSION') return;
+
           if (!session) {
             setIsLoggedIn(false);
             setUserRole(null);
             setAuthLoading(false);
-            setCurrentPageState(
-              'dashboard'
-            );
-          } else {
+            setCurrentPageState('dashboard');
+          } else if (event === 'SIGNED_IN') {
             setTimeout(() => {
               void loadProfile(
                 session.user.id
