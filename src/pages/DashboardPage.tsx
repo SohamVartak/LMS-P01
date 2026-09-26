@@ -23,7 +23,7 @@ export const DashboardPage: React.FC = () => {
     user, 
     books, 
     borrowedBooks, 
-    activities, 
+    activities,
     setCurrentPage, 
     openBookModal,
     updateReadingProgress 
@@ -69,8 +69,17 @@ export const DashboardPage: React.FC = () => {
     b => b.status === 'Currently Reading' || b.progressPercent > 0
   );
 
-  // Recommended Books (curated selection from top-rated books matching user preferences)
+  // Recommendations come from the current approved catalogue; no synthetic ranking is applied.
   const recommendedBooks = books.slice(0, 6);
+
+  const liveActivities = borrowedBooks.slice(0, 5).map(record => ({
+    id: `borrow-${record.id}`,
+    title: record.status === 'Completed' ? 'Book returned' : record.status === 'Reserved' ? 'Book reserved' : 'Book borrowed',
+    description: `${record.bookTitle} · ${record.status}`,
+    timestamp: record.borrowDate ? new Date(record.borrowDate).toLocaleDateString('en-IN') : 'Date not recorded'
+  }));
+
+  const activityItems = liveActivities.length ? liveActivities : activities.slice(0, 5);
 
   const quickActions = [
     {
@@ -386,7 +395,7 @@ export const DashboardPage: React.FC = () => {
           </div>
 
           <div className="bg-[var(--app-surface-elevated)] p-5 rounded-xl border border-[var(--app-border)] shadow-xs space-y-4">
-            {activities.slice(0, 5).map((act, index) => (
+            {activityItems.map((act, index) => (
               <div key={act.id} className="flex items-start gap-3 relative">
                 {/* Timeline vertical connector */}
                 {index < activities.length - 1 && (
@@ -413,6 +422,10 @@ export const DashboardPage: React.FC = () => {
               </div>
             ))}
 
+            {activityItems.length === 0 && (
+              <p className="text-xs text-[var(--app-text-muted)] py-4">No library activity has been recorded yet.</p>
+            )}
+
             <button
               onClick={() => setCurrentPage('my-books')}
               className="w-full mt-2 py-2 text-center text-xs font-semibold text-[var(--app-accent)] hover:bg-[var(--app-surface-subtle)] rounded-lg transition-colors border border-[var(--app-border)]"
@@ -431,7 +444,7 @@ export const DashboardPage: React.FC = () => {
             <h2 className="text-base font-bold text-[var(--app-text)] font-serif-academic">
               Recommended for You
             </h2>
-            <p className="text-xs text-[var(--app-text-muted)]">Curated based on your Computer Science & DBMS coursework</p>
+            <p className="text-xs text-[var(--app-text-muted)]">Selected from the current approved engineering catalogue</p>
           </div>
           <button
             onClick={() => setCurrentPage('browse-books')}
