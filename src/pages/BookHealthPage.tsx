@@ -81,11 +81,10 @@ export const BookHealthPage: React.FC = () => {
     setConditionNotes(currentNotes || '');
   };
 
-  const handleSaveCondition = () => {
-    if (editingBookId) {
-      updateBookCondition(editingBookId, newCondition, conditionNotes);
-      setEditingBookId(null);
-    }
+  const handleSaveCondition = async () => {
+    if (!editingBookId) return;
+    await updateBookCondition(editingBookId, newCondition, conditionNotes);
+    setEditingBookId(null);
   };
 
   return (
