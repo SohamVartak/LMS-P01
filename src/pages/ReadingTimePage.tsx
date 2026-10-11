@@ -15,10 +15,11 @@ export const ReadingTimePage: React.FC = () => {
 
   // Calculation formulas
   const wordsPerPage = 275;
-  const totalWords = currentBook.pages * wordsPerPage;
-  const totalMinutesToRead = Math.round(totalWords / readingSpeedWpm);
+  const hasPageCount = Number(currentBook.pages) > 0;
+  const totalWords = hasPageCount ? currentBook.pages * wordsPerPage : 0;
+  const totalMinutesToRead = hasPageCount ? Math.max(1, Math.round(totalWords / readingSpeedWpm)) : 0;
   const totalHoursToRead = (totalMinutesToRead / 60).toFixed(1);
-  const daysToFinish = Math.max(1, Math.ceil(totalMinutesToRead / dailyMinutes));
+  const daysToFinish = hasPageCount ? Math.max(1, Math.ceil(totalMinutesToRead / dailyMinutes)) : 0;
 
   // Projected finish date
   const finishDate = new Date();
@@ -65,7 +66,7 @@ export const ReadingTimePage: React.FC = () => {
             >
               {books.map(b => (
                 <option key={b.id} value={b.id}>
-                  {b.title} — {b.author} ({b.pages} pages)
+                  {b.title} — {b.author} ({Number(b.pages) > 0 ? String(b.pages) + ' pages' : 'page count unknown'})
                 </option>
               ))}
             </select>
@@ -116,15 +117,15 @@ export const ReadingTimePage: React.FC = () => {
             <div className="p-4 rounded-xl bg-blue-50/60 border border-blue-100">
               <span className="text-[11px] font-semibold text-slate-500 block">Total Reading Time</span>
               <span className="text-2xl font-bold font-tabular text-blue-950 mt-1 block">
-                {totalHoursToRead} hrs
+                {hasPageCount ? totalHoursToRead + ' hrs' : '—'}
               </span>
-              <span className="text-[10px] text-slate-500 font-tabular">~{totalWords.toLocaleString()} words</span>
+              <span className="text-[10px] text-slate-500 font-tabular">{hasPageCount ? '~' + totalWords.toLocaleString() + ' words' : 'Add a page count to estimate'}</span>
             </div>
 
             <div className="p-4 rounded-xl bg-emerald-50/60 border border-emerald-100">
               <span className="text-[11px] font-semibold text-slate-500 block">Days to Finish</span>
               <span className="text-2xl font-bold font-tabular text-emerald-900 mt-1 block">
-                {daysToFinish} days
+                {hasPageCount ? daysToFinish + ' days' : '—'}
               </span>
               <span className="text-[10px] text-emerald-700 font-tabular">at {dailyMinutes} mins/day</span>
             </div>
@@ -132,7 +133,7 @@ export const ReadingTimePage: React.FC = () => {
             <div className="p-4 rounded-xl bg-purple-50/60 border border-purple-100">
               <span className="text-[11px] font-semibold text-slate-500 block">Target Completion</span>
               <span className="text-sm font-bold text-purple-950 mt-1.5 block">
-                {finishDateStr}
+                {hasPageCount ? finishDateStr : 'Page count needed'}
               </span>
               <span className="text-[10px] text-purple-700 font-tabular">Calculated pacing</span>
             </div>
@@ -157,7 +158,7 @@ export const ReadingTimePage: React.FC = () => {
           <div className="w-full p-3 bg-slate-50 rounded-xl border border-slate-200 text-xs text-slate-600 space-y-1.5">
             <div className="flex justify-between font-tabular">
               <span>Page Count:</span>
-              <strong>{currentBook.pages} pages</strong>
+              <strong>{hasPageCount ? currentBook.pages + ' pages' : 'Not recorded'}</strong>
             </div>
             <div className="flex justify-between font-tabular">
               <span>Available Copies:</span>
