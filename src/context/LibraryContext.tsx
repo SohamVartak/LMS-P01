@@ -1037,14 +1037,11 @@ export const LibraryProvider:
       async () => {
 
         /*
-         * Clear any previously persisted Supabase session.
-         *
-         * This keeps the current application behaviour where
-         * the user explicitly logs in when opening the app.
+         * Do not sign out during mount. A startup sign-out destroys a
+         * valid persisted session and can make the app feel as if
+         * navigation and feature buttons are unresponsive after refresh.
+         * This app still requires explicit portal selection to log in.
          */
-
-        await supabase.auth.signOut();
-
 
         if (!mounted) {
           return;
@@ -1729,32 +1726,12 @@ export const LibraryProvider:
     const todayStr = today.toISOString().split('T')[0];
     const dueDateStr = due.toISOString().split('T')[0];
 
-    const { data: record, error: insertError } = await supabase
-      .from('borrow_records')
-      .insert({
-        book_id: bookId,
-        student_id: user.id,
-        issue_date: todayStr,
-        due_date: dueDateStr,
-        status: 'BORROWED'
-      })
-      .select('id')
-      .single();
+    const { data: record, error: issueError } = await supabase.rpc('checkout_library_book', {
+      p_book_id: bookId
+    });
 
-    if (insertError) {
-      addToast('Book Issue Failed', insertError.message, 'error');
-      return false;
-    }
-
-    const { error: stockError } = await supabase
-      .from('books')
-      .update({ available_copies: targetBook.availableCopies - 1 })
-      .eq('id', bookId)
-      .gt('available_copies', 0);
-
-    if (stockError) {
-      await supabase.from('borrow_records').delete().eq('id', record.id).eq('student_id', user.id);
-      addToast('Book Issue Failed', stockError.message, 'error');
+    if (issueError) {
+      addToast('Book Issue Failed', issueError.message, 'error');
       return false;
     }
 
@@ -1762,7 +1739,7 @@ export const LibraryProvider:
     await refreshBooks();
 
     addToast('Book Issued Successfully', `"${targetBook.title}" added to My Books. Due in 14 days.`, 'success');
-    return true;
+    return Boolean(record?.id);
   };
 
 
@@ -1961,36 +1938,13 @@ export const LibraryProvider:
       return false;
     }
 
-    const { error: returnError } = await supabase
-      .from('borrow_records')
-      .update({
-        status: 'RETURNED',
-        return_date: new Date().toISOString().split('T')[0]
-      })
-      .eq('id', borrowRecordId)
-      .eq('student_id', user.id)
-      .in('status', ['BORROWED', 'OVERDUE']);
+    const { error: returnError } = await supabase.rpc('return_library_book', {
+      p_borrow_record_id: borrowRecordId
+    });
 
     if (returnError) {
       addToast('Return Failed', returnError.message, 'error');
       return false;
-    }
-
-    const targetBook = books.find(b => b.id === record.bookId);
-    if (targetBook) {
-      const { error: stockError } = await supabase
-        .from('books')
-        .update({
-          available_copies: Math.min(
-            targetBook.totalCopies,
-            targetBook.availableCopies + 1
-          )
-        })
-        .eq('id', record.bookId);
-
-      if (stockError) {
-        addToast('Return Recorded', 'The return was recorded, but inventory could not be updated automatically.', 'warning');
-      }
     }
 
     await loadStudentData(user.id);
@@ -2358,27 +2312,13 @@ export const LibraryProvider:
     const target = exchangeItems.find(e => e.id === itemId);
     if (!target || target.ownerId === user.id) return;
 
-    const { error: requestError } = await supabase
-      .from('book_exchange_requests')
-      .insert({
-        item_id: itemId,
-        requester_id: user.id,
-        status: 'PENDING'
-      });
+    const { error: requestError } = await supabase.rpc('request_book_exchange', {
+      p_item_id: itemId,
+      p_message: null
+    });
 
     if (requestError) {
       addToast('Exchange Request Failed', requestError.message, 'error');
-      return;
-    }
-
-    const { error: itemError } = await supabase
-      .from('book_exchange_items')
-      .update({ status: 'REQUESTED' })
-      .eq('id', itemId)
-      .eq('status', 'AVAILABLE');
-
-    if (itemError) {
-      addToast('Exchange Update Failed', itemError.message, 'error');
       return;
     }
 
@@ -2542,10 +2482,11 @@ export const LibraryProvider:
     if (updated.department !== undefined) profileUpdate.department = updated.department;
     if (updated.year !== undefined) profileUpdate.year = updated.year;
 
-    const { error } = await supabase
-      .from('profiles')
-      .update(profileUpdate)
-      .eq('id', user.id);
+    const { error } = await supabase.rpc('update_own_library_profile', {
+      p_full_name: profileUpdate.full_name ?? null,
+      p_department: profileUpdate.department ?? null,
+      p_year: profileUpdate.year ?? null
+    });
 
     if (error) {
       addToast('Profile Update Failed', error.message, 'error');
