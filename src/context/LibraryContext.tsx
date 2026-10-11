@@ -511,8 +511,14 @@ export const LibraryProvider:
       reviewsCount:
         Number(b.online_rating_count || 0),
 
-      pages:
-        Number.isFinite(Number(b.pages)) && Number(b.pages) > 0 ? Number(b.pages) : 0,
+      // Supabase stores the canonical page count in `books.pages`.
+      // Accept numeric strings as well, and tolerate legacy page_count/total_pages
+      // payloads so the estimator does not silently lose valid metadata.
+      pages: (() => {
+        const rawPages = b.pages ?? b.page_count ?? b.total_pages;
+        const parsedPages = typeof rawPages === 'number' ? rawPages : Number(String(rawPages ?? '').trim());
+        return Number.isFinite(parsedPages) && parsedPages > 0 ? Math.round(parsedPages) : 0;
+      })(),
 
       readingTimeHours:
         0,
