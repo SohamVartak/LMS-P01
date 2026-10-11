@@ -512,7 +512,7 @@ export const LibraryProvider:
         Number(b.online_rating_count || 0),
 
       pages:
-        0,
+        Number.isFinite(Number(b.pages)) && Number(b.pages) > 0 ? Number(b.pages) : 0,
 
       readingTimeHours:
         0,
