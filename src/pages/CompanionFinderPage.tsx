@@ -20,16 +20,32 @@ export const CompanionFinderPage: React.FC = () => {
   const load = async () => {
     if (!user.id) return;
     setLoading(true);
-    const { data: profile } = await supabase.from('profiles').select('companion_opt_in').eq('id', user.id).maybeSingle();
-    setOptIn(Boolean(profile?.companion_opt_in));
+    try {
+      const { data: profile, error: profileError } = await supabase
+        .from('profiles')
+        .select('companion_opt_in')
+        .eq('id', user.id)
+        .maybeSingle();
 
-    if (profile?.companion_opt_in) {
-      const { data, error } = await supabase.rpc('find_reading_companions');
-      if (!error) setCompanions((data || []) as CompanionRow[]);
-    } else {
+      if (profileError) throw profileError;
+      const enabled = Boolean(profile?.companion_opt_in);
+      setOptIn(enabled);
+
+      if (enabled) {
+        const { data, error } = await supabase.rpc('find_reading_companions');
+        if (error) throw error;
+        setCompanions((data || []) as CompanionRow[]);
+      } else {
+        setCompanions([]);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not load companion discovery.';
+      console.error('Companion Finder failed:', error);
+      addToast('Companion Finder Error', message, 'error');
       setCompanions([]);
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   useEffect(() => { void load(); }, [user.id]);
