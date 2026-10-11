@@ -22,22 +22,26 @@ export const SurpriseMePage: React.FC = () => {
   const [filterPreference, setFilterPreference] = useState<'any' | 'quick' | 'masterpiece'>('any');
 
   const handleRollDice = () => {
+    if (!books.length || isRolling) return;
     setIsRolling(true);
 
-    setTimeout(() => {
+    window.setTimeout(() => {
       let pool = [...books];
       if (filterPreference === 'quick') {
-        pool = books.filter(b => b.pages > 0 && b.pages <= 450);
+        const quickReads = books.filter(b => Number(b.pages) > 0 && Number(b.pages) <= 450);
+        if (quickReads.length) pool = quickReads;
       } else if (filterPreference === 'masterpiece') {
-        pool = books.filter(b => (b.onlineRating ?? 0) >= 4);
+        const topRated = books.filter(b => Math.max(b.onlineRating ?? 0, b.studentRating ?? 0, b.rating ?? 0) >= 4);
+        if (topRated.length) pool = topRated;
       }
 
-      if (pool.length === 0) pool = books;
-
-      const pick = pool[Math.floor(Math.random() * pool.length)];
-      setRandomBook(pick);
+      const alternatives = randomBook && pool.length > 1
+        ? pool.filter(book => book.id !== randomBook.id)
+        : pool;
+      const pick = alternatives[Math.floor(Math.random() * alternatives.length)];
+      setRandomBook(pick ?? null);
       setIsRolling(false);
-    }, 600);
+    }, 250);
   };
 
   if (!randomBook) { /* empty state is rendered below */ }
@@ -101,6 +105,14 @@ export const SurpriseMePage: React.FC = () => {
             <Dices className="w-10 h-10 text-amber-400" />
             <h2 className="text-xl font-bold font-serif-academic">Uncharted Knowledge Awaits</h2>
             <p className="text-xs text-blue-200/80 max-w-xs">Choose a filter and draw a real title from the approved engineering catalogue.</p>
+            <button
+              onClick={handleRollDice}
+              disabled={isRolling || books.length === 0}
+              className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-5 py-3 text-sm font-bold text-slate-950 transition hover:bg-amber-300 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <Sparkles className="h-4 w-4" />
+              {isRolling ? 'Finding a book…' : books.length ? 'Surprise me' : 'No books available'}
+            </button>
           </div>
         ) : (
           <div className="w-full max-w-lg bg-[var(--app-surface-elevated)] p-6 sm:p-8 rounded-2xl shadow-xl border border-[var(--app-border)] min-h-[380px] flex flex-col justify-between">
@@ -121,7 +133,7 @@ export const SurpriseMePage: React.FC = () => {
             <div className="mt-6 flex gap-2 border-t border-slate-200 pt-4">
               <button onClick={() => openBookModal(randomBook)} className="flex-1 py-2 rounded-lg border border-slate-300 text-xs font-semibold">View Details</button>
               <button onClick={() => void borrowBook(randomBook.id)} className="flex-1 py-2 rounded-lg bg-blue-950 text-white text-xs font-semibold">Issue Copy</button>
-              <button onClick={handleRollDice} className="py-2 px-3 rounded-lg border border-slate-300 text-xs font-semibold"><RotateCcw className="w-4 h-4" /></button>
+              <button onClick={handleRollDice} disabled={isRolling || books.length === 0} aria-label="Pick another book" className="py-2 px-3 rounded-lg border border-slate-300 text-xs font-semibold disabled:opacity-50"><RotateCcw className="w-4 h-4" /></button>
             </div>
           </div>
         )}
